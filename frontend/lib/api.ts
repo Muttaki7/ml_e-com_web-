@@ -77,6 +77,10 @@ export function downloadBlob(response: any, fallbackName: string) {
 export const authApi = {
   customerRegister: (data: any) => api.post("/auth/customer/register", data),
   customerLogin: (data: any) => api.post("/auth/customer/login", data),
+  customer2faVerify: (data: any) => api.post("/auth/customer/2fa/verify", data),
+  customer2faSetup: () => api.post("/auth/customer/2fa/setup"),
+  customer2faConfirm: (code: string) => api.post("/auth/customer/2fa/confirm", { code }),
+  customer2faDisable: (code: string) => api.post("/auth/customer/2fa/disable", { code }),
   adminLogin: (data: any) => api.post("/auth/admin/login", data),
   admin2faVerify: (data: any) => api.post("/auth/admin/2fa/verify", data),
   admin2faSetup: () => api.post("/auth/admin/2fa/setup"),
@@ -93,6 +97,10 @@ export const productApi = {
 
 export const settingsApi = {
   public: () => api.get("/settings/public"),
+};
+
+export const metaApi = {
+  countries: () => api.get("/meta/countries"),
 };
 
 export const orderApi = {
@@ -134,8 +142,43 @@ export const adminApi = {
   disableAdmin: (id: string) => api.post(`/admins/${id}/disable`),
   settings: () => api.get("/admin/settings"),
   updateSettings: (data: any) => api.put("/admin/settings", data),
+  uploadSettingsImage: (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api.post("/admin/settings/upload-image", fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
-export function formatBDT(amount: number) {
-  return `৳${amount.toLocaleString("en-BD", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+// ---------- Global storefront settings (cached) ----------
+let cachedPublicSettings: any = null;
+
+/** Fetch (and cache) public store settings: currency, store country, payments, delivery. */
+export async function getStoreSettings(force = false): Promise<any> {
+  if (!cachedPublicSettings || force) {
+    const res = await settingsApi.public();
+    cachedPublicSettings = res.data;
+  }
+  return cachedPublicSettings;
+}
+
+/** Synchronous peek at the store currency; "USD" until the first fetch resolves. */
+export function peekCurrency(): string {
+  return cachedPublicSettings?.store?.currency || "USD";
+}
+
+/** Format an amount in the store currency (or a given ISO 4217 currency). */
+export function formatMoney(amount: number, currency?: string) {
+  const cur = currency || peekCurrency();
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: cur,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount ?? 0);
+  } catch {
+    return `${cur} ${(amount ?? 0).toLocaleString()}`;
+  }
 }

@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authApi, getApiError } from "@/lib/api";
+import IntlPhoneInput from "@/components/IntlPhoneInput";
 import toast from "react-hot-toast";
-import { Store, User, Mail, Phone, Lock, ArrowRight } from "lucide-react";
+import { Store, User, Mail, Lock, ArrowRight } from "lucide-react";
 
 export default function CustomerRegisterPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function CustomerRegisterPage() {
         </div>
         <h1 className="text-2xl font-bold text-center text-slate-900 dark:text-white mt-4">Create Account</h1>
         <p className="text-center text-slate-500 dark:text-slate-400 text-sm mt-1">
-          Join BD Shop for faster checkout &amp; order tracking
+          Join GlobalShop for faster checkout &amp; order tracking
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -76,19 +77,8 @@ export default function CustomerRegisterPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">BD phone</label>
-            <div className="relative">
-              <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => update("phone", e.target.value)}
-                className="input w-full !pl-10"
-                required
-                pattern="(?:\+88?0|0)?1[3-9]\d{8}"
-                placeholder="01712345678"
-              />
-            </div>
+            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">Phone (with country code)</label>
+            <IntlPhoneInput value={form.phone} onChange={(v) => update("phone", v)} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">Password (min 8 chars)</label>

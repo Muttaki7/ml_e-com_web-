@@ -11,7 +11,8 @@ frontend/next.log
 frontend/next.err
 
 
-backend/uvicorn.log
-backend/uvicorn.err
+backend/uvicorn*.log
+backend/uvicorn*.err
 frontend/tsconfig.tsbuildinfo
+*.code-workspace
 

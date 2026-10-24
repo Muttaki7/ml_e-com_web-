@@ -29,7 +29,7 @@ export function StorefrontHeader() {
             <Store size={17} />
           </span>
           <span className="text-slate-900 dark:text-white">
-            BD<span className="text-sky-600 dark:text-sky-400">Shop</span>
+            Global<span className="text-sky-600 dark:text-sky-400">Shop</span>
           </span>
         </Link>
 

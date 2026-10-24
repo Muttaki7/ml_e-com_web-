@@ -7,7 +7,9 @@ db: AsyncIOMotorDatabase | None = None
 
 async def connect_db() -> None:
     global client, db
-    client = AsyncIOMotorClient(settings.MONGODB_URI)
+    # tz_aware: BSON datetimes are otherwise returned naive, which breaks
+    # comparisons against the timezone-aware datetimes this app stores.
+    client = AsyncIOMotorClient(settings.MONGODB_URI, tz_aware=True)
     db = client[settings.MONGODB_DB]
     # Ensure indexes
     await _create_indexes()

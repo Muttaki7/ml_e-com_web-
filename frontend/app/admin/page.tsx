@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { adminApi, formatBDT } from "@/lib/api";
+import { adminApi, formatMoney } from "@/lib/api";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { AdminShell } from "@/components/AdminShell";
 import { TrendingUp, TrendingDown } from "lucide-react";
@@ -32,15 +32,15 @@ export default function AdminDashboard() {
 
   const cards = kpis
     ? [
-        { label: "Total Sales", value: formatBDT(kpis.total_sales) },
-        { label: "Today", value: formatBDT(kpis.today_sales) },
-        { label: "Monthly", value: formatBDT(kpis.monthly_sales) },
+        { label: "Total Sales", value: formatMoney(kpis.total_sales) },
+        { label: "Today", value: formatMoney(kpis.today_sales) },
+        { label: "Monthly", value: formatMoney(kpis.monthly_sales) },
         { label: "Orders", value: kpis.total_orders },
         { label: "Pending", value: kpis.pending_orders },
         { label: "Customers", value: kpis.total_customers },
         { label: "Products", value: kpis.total_products },
         { label: "Low Stock", value: kpis.low_stock_products },
-        { label: "Gross Profit", value: formatBDT(kpis.gross_profit) },
+        { label: "Gross Profit", value: formatMoney(kpis.gross_profit) },
         { label: "Margin", value: `${kpis.profit_margin_percent}%` },
       ]
     : [];
@@ -82,7 +82,7 @@ export default function AdminDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" strokeOpacity={0.15} />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#64748b" }} />
                 <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />
-                <Tooltip formatter={(v: number) => formatBDT(v)} contentStyle={{ borderRadius: 12 }} />
+                <Tooltip formatter={(v: number) => formatMoney(v)} contentStyle={{ borderRadius: 12 }} />
                 <Bar dataKey="sales" fill="#0284c7" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -116,8 +116,8 @@ export default function AdminDashboard() {
                     {bi.top_profitable_products.slice(0, 5).map((p: any) => (
                       <tr key={p.product_id} className="border-b dark:border-slate-700 last:border-0">
                         <td className="py-2 text-slate-800 dark:text-slate-200">{p.name}</td>
-                        <td className="text-slate-600 dark:text-slate-400">{formatBDT(p.revenue)}</td>
-                        <td className="text-emerald-600 dark:text-emerald-400">{formatBDT(p.profit)}</td>
+                        <td className="text-slate-600 dark:text-slate-400">{formatMoney(p.revenue)}</td>
+                        <td className="text-emerald-600 dark:text-emerald-400">{formatMoney(p.profit)}</td>
                         <td className="text-slate-600 dark:text-slate-400">{p.qty_sold}</td>
                       </tr>
                     ))}

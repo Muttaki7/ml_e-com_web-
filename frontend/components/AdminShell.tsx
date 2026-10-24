@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { getStoreSettings } from "@/lib/api";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -36,6 +38,13 @@ export function AdminShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [storeMeta, setStoreMeta] = useState<{ timezone?: string; currency?: string }>({});
+
+  useEffect(() => {
+    getStoreSettings()
+      .then((s) => setStoreMeta(s?.store || {}))
+      .catch(() => {});
+  }, []);
 
   function logout() {
     localStorage.clear();
@@ -47,9 +56,9 @@ export function AdminShell({
       <aside className="w-64 bg-slate-900 dark:bg-slate-900 text-slate-200 hidden md:flex flex-col shrink-0">
         <div className="p-5 font-bold text-lg border-b border-slate-700 flex items-center gap-2">
           <span className="w-7 h-7 rounded-lg bg-sky-600 flex items-center justify-center text-sm text-white">
-            B
+            G
           </span>
-          BD ERP
+          Global ERP
         </div>
         <nav className="flex-1 p-3 space-y-1 text-sm">
           {NAV.map(({ label, href, icon: Icon }) => (
@@ -99,7 +108,7 @@ export function AdminShell({
               ))}
             </nav>
             <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
-              Asia/Dhaka · BDT
+              {storeMeta.timezone || "UTC"} · {storeMeta.currency || "USD"}
             </span>
           </div>
         </header>

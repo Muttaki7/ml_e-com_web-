@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { adminApi, formatBDT, getApiError } from "@/lib/api";
+import { adminApi, formatMoney, getApiError } from "@/lib/api";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { AdminShell } from "@/components/AdminShell";
 import toast from "react-hot-toast";
@@ -63,7 +63,7 @@ export default function AdminInventoryPage() {
           </strong>
         </span>
         <span className="card !rounded-xl px-4 py-2">
-          Stock value: <strong className="text-slate-900 dark:text-white">{formatBDT(totalValue)}</strong>
+          Stock value: <strong className="text-slate-900 dark:text-white">{formatMoney(totalValue)}</strong>
         </span>
       </div>
 
@@ -88,7 +88,7 @@ export default function AdminInventoryPage() {
                   <p className="text-xs text-slate-400 dark:text-slate-500">{i.brand}</p>
                 </td>
                 <td className="text-slate-500 dark:text-slate-400">{i.sku}</td>
-                <td className="text-slate-700 dark:text-slate-300">{formatBDT(i.final_price)}</td>
+                <td className="text-slate-700 dark:text-slate-300">{formatMoney(i.final_price)}</td>
                 <td className="text-slate-700 dark:text-slate-300">
                   <span className={i.stock_quantity <= i.min_stock_level ? "text-rose-600 font-semibold" : ""}>
                     {i.stock_quantity}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { adminApi, formatBDT, getApiError } from "@/lib/api";
+import { adminApi, formatMoney, getApiError } from "@/lib/api";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { AdminShell } from "@/components/AdminShell";
 import toast from "react-hot-toast";
@@ -389,7 +389,7 @@ export default function AdminProductsPage() {
                         "—"
                       )}
                     </td>
-                    <td className="font-semibold text-slate-900 dark:text-white">{formatBDT(p.final_price)}</td>
+                    <td className="font-semibold text-slate-900 dark:text-white">{formatMoney(p.final_price)}</td>
                     <td className="text-slate-700 dark:text-slate-300">
                       <span
                         className={p.stock_quantity <= p.min_stock_level ? "text-rose-600 font-medium" : ""}

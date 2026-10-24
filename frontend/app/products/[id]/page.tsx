@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { productApi, formatBDT } from "@/lib/api";
+import { productApi, formatMoney } from "@/lib/api";
 import { StorefrontHeader } from "@/components/StorefrontHeader";
 import { Footer } from "@/components/Footer";
 import toast from "react-hot-toast";
@@ -127,7 +127,7 @@ export default function ProductDetailPage() {
 
           <div>
             <p className="text-xs text-sky-600 dark:text-sky-400 font-medium uppercase tracking-wide">
-              {product.brand || "BD Shop"}
+              {product.brand || "GlobalShop"}
             </p>
             <h1 className="text-3xl font-bold mt-1 text-slate-900 dark:text-white">{product.name}</h1>
             {product.description && (
@@ -135,10 +135,10 @@ export default function ProductDetailPage() {
             )}
 
             <div className="mt-4 flex items-end gap-3">
-              <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{formatBDT(product.final_price)}</p>
+              <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{formatMoney(product.final_price)}</p>
               {product.discount_percent > 0 && (
                 <p className="text-lg text-slate-400 line-through">
-                  {formatBDT(product.selling_price)}
+                  {formatMoney(product.selling_price)}
                 </p>
               )}
             </div>
@@ -202,7 +202,7 @@ export default function ProductDetailPage() {
             <div className="mt-6 grid grid-cols-3 gap-2 text-center">
               {[
                 { icon: Truck, t: "Fast delivery", s: "2–5 days" },
-                { icon: ShieldCheck, t: "Secure", s: "COD & wallets" },
+                { icon: ShieldCheck, t: "Secure", s: "Cards, PayPal & COD" },
                 { icon: RotateCcw, t: "Easy returns", s: "7 days" },
               ].map((x) => (
                 <div key={x.t} className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/70">

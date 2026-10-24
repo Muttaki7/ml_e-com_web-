@@ -269,6 +269,19 @@ ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 
+def _detect_image(data: bytes) -> Optional[tuple[str, str]]:
+    """Return (mime, extension) from magic bytes; never trust the filename."""
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg", ".jpg"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png", ".png"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif", ".gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp", ".webp"
+    return None
+
+
 @router.post("/admin/products/upload-image")
 async def upload_product_image(
     request: Request,
@@ -277,12 +290,15 @@ async def upload_product_image(
 ):
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(400, "Only JPEG, PNG, WEBP or GIF images are allowed")
-    data = await file.read()
+    data = await file.read(MAX_IMAGE_BYTES + 1)
     if not data:
         raise HTTPException(400, "Empty file")
     if len(data) > MAX_IMAGE_BYTES:
         raise HTTPException(400, "Image exceeds the 5 MB limit")
-    ext = Path(file.filename or "").suffix.lower() or ".jpg"
+    detected = _detect_image(data)
+    if not detected:
+        raise HTTPException(400, "File content is not a valid image")
+    _, ext = detected
     name = f"{uuid4().hex}{ext}"
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     async with aiofiles.open(UPLOAD_DIR / name, "wb") as fh:

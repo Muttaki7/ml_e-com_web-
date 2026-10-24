@@ -4,23 +4,27 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from fastapi.staticfiles import StaticFiles
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import structlog
 
-from app.core.config import settings
+from app.core.config import settings, DEFAULT_SECRET_KEY
 from app.core.database import connect_db, close_db
+from app.core.limiter import limiter
 from app.api.v1 import auth, admins, products, orders, payments, analytics, ml
 from app.api.v1 import settings as settings_router
 
 logger = structlog.get_logger()
 
-limiter = Limiter(key_func=get_remote_address)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if not settings.DEBUG and (
+        settings.SECRET_KEY == DEFAULT_SECRET_KEY or len(settings.SECRET_KEY) < 32
+    ):
+        raise RuntimeError(
+            "SECRET_KEY must be set to a long random value before running in production"
+        )
     await connect_db()
     logger.info("mongodb.connected", db=settings.MONGODB_DB)
     yield
@@ -30,7 +34,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Modern Bangladesh E-Commerce + ERP + Machine Learning Platform",
+    description="Global E-Commerce + ERP + Machine Learning Platform",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -84,14 +88,25 @@ async def health():
     return {"status": "ok"}
 
 
-# Simple request logging middleware
+# Simple request logging middleware + baseline security headers
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     response = await call_next(request)
-    logger.info(
-        "http.request",
-        method=request.method,
-        path=request.url.path,
-        status=response.status_code,
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault(
+        "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
     )
+    if request.url.scheme == "https":
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
+    if settings.DEBUG or response.status_code >= 400:
+        logger.info(
+            "http.request",
+            method=request.method,
+            path=request.url.path,
+            status=response.status_code,
+        )
     return response

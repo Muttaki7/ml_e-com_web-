@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { adminApi, formatBDT, getApiError } from "@/lib/api";
+import { adminApi, formatMoney, getApiError } from "@/lib/api";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { AdminShell } from "@/components/AdminShell";
 import {
@@ -71,7 +71,7 @@ export default function AdminBiPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" strokeOpacity={0.15} />
                   <XAxis dataKey="category" tick={{ fontSize: 10, fill: "#64748b" }} interval={0} angle={-20} textAnchor="end" />
                   <YAxis tick={{ fontSize: 10, fill: "#64748b" }} />
-                  <Tooltip formatter={(v: number) => formatBDT(v)} contentStyle={{ borderRadius: 12 }} />
+                  <Tooltip formatter={(v: number) => formatMoney(v)} contentStyle={{ borderRadius: 12 }} />
                   <Bar dataKey="profit" fill="#059669" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -96,7 +96,7 @@ export default function AdminBiPage() {
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v: number) => formatBDT(v)} contentStyle={{ borderRadius: 12 }} />
+                  <Tooltip formatter={(v: number) => formatMoney(v)} contentStyle={{ borderRadius: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                 </PieChart>
               </ResponsiveContainer>
@@ -122,8 +122,8 @@ export default function AdminBiPage() {
                   {bi.top_profitable_products.map((p: any) => (
                     <tr key={p.product_id} className="border-b dark:border-slate-700 last:border-0">
                       <td className="py-2 text-slate-800 dark:text-slate-200">{p.name}</td>
-                      <td className="text-slate-600 dark:text-slate-400">{formatBDT(p.revenue)}</td>
-                      <td className="text-emerald-600 dark:text-emerald-400 font-medium">{formatBDT(p.profit)}</td>
+                      <td className="text-slate-600 dark:text-slate-400">{formatMoney(p.revenue)}</td>
+                      <td className="text-emerald-600 dark:text-emerald-400 font-medium">{formatMoney(p.profit)}</td>
                       <td className="text-slate-600 dark:text-slate-400">{p.qty_sold}</td>
                     </tr>
                   ))}

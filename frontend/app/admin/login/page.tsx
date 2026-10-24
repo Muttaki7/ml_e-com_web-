@@ -11,8 +11,16 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [tempToken, setTempToken] = useState("");
   const [step, setStep] = useState<"password" | "2fa">("password");
   const [loading, setLoading] = useState(false);
+
+  function storeSession(data: any) {
+    localStorage.setItem("access_token", data.access_token);
+    localStorage.setItem("refresh_token", data.refresh_token);
+    localStorage.setItem("token_type", "admin");
+    localStorage.setItem("admin_user", JSON.stringify(data.user));
+  }
 
   async function handlePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -20,13 +28,11 @@ export default function AdminLoginPage() {
     try {
       const { data } = await authApi.adminLogin({ email, password });
       if (data.requires_2fa) {
+        setTempToken(data.temp_token);
         setStep("2fa");
         toast("Enter the 6-digit code from your authenticator app");
       } else {
-        localStorage.setItem("access_token", data.access_token);
-        localStorage.setItem("refresh_token", data.refresh_token);
-        localStorage.setItem("token_type", "admin");
-        localStorage.setItem("admin_user", JSON.stringify(data.user));
+        storeSession(data);
         toast.success("Welcome to ERP");
         router.push("/admin");
       }
@@ -41,11 +47,8 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await authApi.admin2faVerify({ email, code });
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
-      localStorage.setItem("token_type", "admin");
-      localStorage.setItem("admin_user", JSON.stringify(data.user));
+      const { data } = await authApi.admin2faVerify({ temp_token: tempToken, code });
+      storeSession(data);
       toast.success("2FA verified");
       router.push("/admin");
     } catch (err: any) {
@@ -63,7 +66,7 @@ export default function AdminLoginPage() {
         </div>
         <h1 className="text-2xl font-bold text-center text-slate-900 dark:text-white mt-4">Admin ERP Login</h1>
         <p className="text-center text-slate-500 dark:text-slate-400 text-sm mt-1">
-          Separate authentication · 2FA required for administrators
+          Separate authentication · TOTP 2FA available for administrators
         </p>
 
         {step === "password" ? (
@@ -108,15 +111,16 @@ export default function AdminLoginPage() {
           <form onSubmit={handle2FA} className="mt-8 space-y-4">
             <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
               Enter the 6-digit code for <strong className="text-slate-900 dark:text-white">{email}</strong>
+              <br />
+              <span className="text-xs text-slate-400">or use an 8-character backup code</span>
             </p>
             <div className="relative">
               <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                inputMode="numeric"
-                maxLength={6}
+                maxLength={8}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setCode(e.target.value.replace(/[^0-9a-zA-Z]/g, "").toUpperCase())}
                 className="input w-full !pl-10 text-center text-2xl tracking-widest !font-mono"
                 placeholder="000000"
                 required
@@ -124,14 +128,14 @@ export default function AdminLoginPage() {
             </div>
             <button
               type="submit"
-              disabled={loading || code.length !== 6}
+              disabled={loading || code.length < 6}
               className="btn-primary w-full !py-3"
             >
               {loading ? "Verifying..." : "Verify & Login"}
             </button>
             <button
               type="button"
-              onClick={() => setStep("password")}
+              onClick={() => { setStep("password"); setTempToken(""); setCode(""); }}
               className="w-full inline-flex items-center justify-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700"
             >
               <ArrowLeft size={14} /> Back

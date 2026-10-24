@@ -1,25 +1,13 @@
-from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field, field_validator
-import re
+from typing import Optional
+from pydantic import BaseModel, EmailStr, Field
+from app.schemas.common import PhoneMixin
 
 
-class CustomerRegister(BaseModel):
+class CustomerRegister(PhoneMixin, BaseModel):
     full_name: str = Field(..., min_length=2, max_length=120)
     email: EmailStr
-    phone: str = Field(..., min_length=10, max_length=15)
+    phone: str = Field(..., min_length=8, max_length=20)
     password: str = Field(..., min_length=8, max_length=128)
-
-    @field_validator("phone")
-    @classmethod
-    def validate_bd_phone(cls, v: str) -> str:
-        v = v.strip().replace(" ", "").replace("-", "")
-        if not re.match(r"^(?:\+880|880|0)?1[3-9]\d{8}$", v):
-            raise ValueError("Invalid Bangladesh phone number")
-        if v.startswith("+880"):
-            v = "0" + v[4:]
-        elif v.startswith("880"):
-            v = "0" + v[3:]
-        return v
 
 
 class CustomerLogin(BaseModel):
@@ -32,13 +20,20 @@ class AdminLogin(BaseModel):
     password: str
 
 
-class Admin2FAVerify(BaseModel):
-    email: EmailStr
+class TwoFAVerify(BaseModel):
+    """Second login step. The temp_token binds this request to a password
+    challenge that already succeeded; the code is a 6-digit TOTP or an
+    8-character backup code."""
+    temp_token: str = Field(..., min_length=20)
+    code: str = Field(..., min_length=6, max_length=8)
+
+
+class TwoFASetupConfirm(BaseModel):
     code: str = Field(..., min_length=6, max_length=6)
 
 
-class Admin2FASetupConfirm(BaseModel):
-    code: str = Field(..., min_length=6, max_length=6)
+class TwoFADisable(BaseModel):
+    code: str = Field(..., min_length=6, max_length=8)
 
 
 class TokenResponse(BaseModel):
@@ -53,8 +48,7 @@ class AdminLoginChallenge(BaseModel):
     """Returned when password is valid but 2FA is required."""
     requires_2fa: bool = True
     message: str = "Two-factor authentication required"
-    email: str
-    temp_token: Optional[str] = None  # short-lived token for 2FA step
+    temp_token: str  # short-lived, single-use token for the 2FA step
 
 
 class RefreshRequest(BaseModel):

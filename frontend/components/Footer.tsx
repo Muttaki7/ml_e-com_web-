@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Store, Truck, ShieldCheck, Headset, MapPin, Mail, Phone } from "lucide-react";
 
 const FEATURES = [
-  { icon: Truck, title: "Fast Nationwide Delivery", sub: "Free over ৳1,000" },
-  { icon: ShieldCheck, title: "Secure Checkout", sub: "COD · bKash · Nagad · Rocket" },
+  { icon: Truck, title: "Fast Worldwide Delivery", sub: "Free over the order threshold" },
+  { icon: ShieldCheck, title: "Secure Checkout", sub: "COD · Cards · PayPal & more" },
   { icon: Headset, title: "24/7 Support", sub: "Call or chat any time" },
 ];
 
@@ -16,10 +16,10 @@ export function Footer() {
             <span className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center">
               <Store size={16} />
             </span>
-            BD<span className="text-sky-600">Shop</span>
+            Global<span className="text-sky-600">Shop</span>
           </div>
           <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-            Bangladesh&apos;s modern commerce &amp; ERP platform powered by AI demand forecasting.
+            A global commerce &amp; ERP platform powered by AI demand forecasting.
           </p>
         </div>
         <div>
@@ -34,9 +34,9 @@ export function Footer() {
         <div>
           <h4 className="font-semibold text-slate-900 dark:text-white">Get in touch</h4>
           <ul className="mt-3 space-y-2 text-sm text-slate-500 dark:text-slate-400">
-            <li className="flex items-center gap-2"><MapPin size={15} /> Dhaka, Bangladesh</li>
+            <li className="flex items-center gap-2"><MapPin size={15} /> Serving 200+ countries</li>
             <li className="flex items-center gap-2"><Mail size={15} /> tsiitsolutions1@gmail.com</li>
-            <li className="flex items-center gap-2"><Phone size={15} /> 01747875143</li>
+            <li className="flex items-center gap-2"><Phone size={15} /> +880 1747-875143</li>
           </ul>
         </div>
         <div>
@@ -57,7 +57,7 @@ export function Footer() {
       <div className="border-t border-slate-200 dark:border-slate-800 py-5 text-center text-xs text-slate-400 dark:text-slate-500">
         A benchmark product of TSI IT Solutions<br className="sm:hidden" />
         <span className="flex items-center justify-center gap-4 mt-1">
-          <span className="inline-flex items-center gap-1">Phone: 01747875143</span>
+          <span className="inline-flex items-center gap-1">Phone: +880 1747-875143</span>
           <span className="hidden sm:inline">·</span>
           <span className="inline-flex items-center gap-1">Email: tsiitsolutions1@gmail.com</span>
         </span>

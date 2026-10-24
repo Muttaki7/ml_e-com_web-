@@ -2,6 +2,7 @@ from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, Query
 from app.core.database import get_db
 from app.api.deps import require_permission
+from app.api.v1.settings import get_store_meta
 
 router = APIRouter(prefix="/analytics", tags=["Analytics & BI"])
 
@@ -52,7 +53,7 @@ async def dashboard_kpis(admin: dict = Depends(require_permission("reports.view"
     gross_profit = total_revenue - total_cost
 
     return {
-        "currency": "BDT",
+        "currency": (await get_store_meta())["currency"],
         "total_sales": round(total_revenue, 2),
         "today_sales": round((today_sales[0]["sum"] if today_sales else 0), 2),
         "monthly_sales": round((month_sales[0]["sum"] if month_sales else 0), 2),
@@ -164,7 +165,8 @@ async def business_intelligence(admin: dict = Depends(require_permission("report
 
     insights = []
     if top_profit:
-        insights.append(f"Most profitable product: {top_profit[0].get('name')} (৳{top_profit[0].get('profit', 0):.0f})")
+        meta = await get_store_meta()
+        insights.append(f"Most profitable product: {top_profit[0].get('name')} ({meta['currency']} {top_profit[0].get('profit', 0):,.0f})")
     if low_stock:
         insights.append(f"{len(low_stock)} products are at or below minimum stock level.")
 

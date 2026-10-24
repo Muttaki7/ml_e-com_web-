@@ -5,6 +5,7 @@ from bson import ObjectId
 
 from app.core.security import decode_token
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.constants import resolve_admin_permissions
 
 security = HTTPBearer(auto_error=False)
@@ -18,6 +19,8 @@ async def get_current_customer(
     payload = decode_token(credentials.credentials)
     if not payload or payload.get("type") != "customer":
         raise HTTPException(status_code=401, detail="Invalid customer token")
+    if payload.get("token_use") == "refresh":
+        raise HTTPException(status_code=401, detail="Refresh token cannot be used as an access token")
     if payload.get("2fa_pending"):
         raise HTTPException(status_code=401, detail="2FA pending")
     db = get_db()
@@ -35,6 +38,8 @@ async def get_current_admin(
     payload = decode_token(credentials.credentials)
     if not payload or payload.get("type") != "admin":
         raise HTTPException(status_code=401, detail="Invalid admin token")
+    if payload.get("token_use") == "refresh":
+        raise HTTPException(status_code=401, detail="Refresh token cannot be used as an access token")
     if payload.get("2fa_pending"):
         raise HTTPException(status_code=401, detail="Complete 2FA first")
     db = get_db()
@@ -72,7 +77,9 @@ def require_permission(*required: str):
 
 
 def get_client_ip(request: Request) -> str:
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    # X-Forwarded-For is client-controlled unless a trusted proxy rewrites it.
+    if settings.TRUST_PROXY_HEADERS:
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "unknown"

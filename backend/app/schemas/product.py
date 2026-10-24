@@ -6,26 +6,26 @@ class ProductVariant(BaseModel):
     sku: str
     color: Optional[str] = None
     size: Optional[str] = None
-    stock: int = 0
-    price: float
-    purchase_price: Optional[float] = None
+    stock: int = Field(0, ge=0)
+    price: float = Field(..., ge=0)
+    purchase_price: Optional[float] = Field(None, ge=0)
 
 
 class ProductCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=200)
     slug: Optional[str] = None
-    sku: str
+    sku: str = Field(..., min_length=1, max_length=64)
     barcode: Optional[str] = None
     description: Optional[str] = None
     specifications: Optional[dict] = None
     category_id: Optional[str] = None
     brand: Optional[str] = None
-    purchase_price: float
-    selling_price: float
-    discount_percent: float = 0
-    tax_percent: float = 0
-    stock_quantity: int = 0
-    min_stock_level: int = 5
+    purchase_price: float = Field(..., ge=0)
+    selling_price: float = Field(..., ge=0)
+    discount_percent: float = Field(0, ge=0, le=100)
+    tax_percent: float = Field(0, ge=0, le=100)
+    stock_quantity: int = Field(0, ge=0)
+    min_stock_level: int = Field(5, ge=0)
     supplier_id: Optional[str] = None
     images: List[str] = []
     videos: List[str] = []
@@ -42,12 +42,12 @@ class ProductUpdate(BaseModel):
     specifications: Optional[dict] = None
     category_id: Optional[str] = None
     brand: Optional[str] = None
-    purchase_price: Optional[float] = None
-    selling_price: Optional[float] = None
-    discount_percent: Optional[float] = None
-    tax_percent: Optional[float] = None
-    stock_quantity: Optional[int] = None
-    min_stock_level: Optional[int] = None
+    purchase_price: Optional[float] = Field(None, ge=0)
+    selling_price: Optional[float] = Field(None, ge=0)
+    discount_percent: Optional[float] = Field(None, ge=0, le=100)
+    tax_percent: Optional[float] = Field(None, ge=0, le=100)
+    stock_quantity: Optional[int] = Field(None, ge=0)
+    min_stock_level: Optional[int] = Field(None, ge=0)
     supplier_id: Optional[str] = None
     images: Optional[List[str]] = None
     variants: Optional[List[ProductVariant]] = None

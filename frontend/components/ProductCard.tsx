@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBDT } from "@/lib/api";
+import { formatMoney } from "@/lib/api";
 import { ImageOff, ShoppingCart } from "lucide-react";
 
 export function ProductCard({ p }: { p: any }) {
@@ -31,9 +31,9 @@ export function ProductCard({ p }: { p: any }) {
         </h3>
         <div className="mt-2 flex items-center justify-between">
           <div>
-            <p className="text-sky-600 dark:text-sky-400 font-bold">{formatBDT(p.final_price)}</p>
+            <p className="text-sky-600 dark:text-sky-400 font-bold">{formatMoney(p.final_price)}</p>
             {p.discount_percent > 0 && (
-              <p className="text-xs text-slate-400 line-through">{formatBDT(p.selling_price)}</p>
+              <p className="text-xs text-slate-400 line-through">{formatMoney(p.selling_price)}</p>
             )}
           </div>
           <span

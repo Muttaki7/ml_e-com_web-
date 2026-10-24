@@ -1,1 +1,1 @@
-# Bangladesh E-Commerce ERP Backend
+# Global E-Commerce ERP Backend

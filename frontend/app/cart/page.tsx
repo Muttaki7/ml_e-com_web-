@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { orderApi, settingsApi, formatBDT, getApiError, downloadBlob } from "@/lib/api";
+import { orderApi, settingsApi, formatMoney, getApiError, downloadBlob } from "@/lib/api";
 import { StorefrontHeader } from "@/components/StorefrontHeader";
 import { Footer } from "@/components/Footer";
+import IntlPhoneInput, { loadCountries, type Country } from "@/components/IntlPhoneInput";
 import toast from "react-hot-toast";
 import { CheckCircle2, Trash2, Minus, Plus, FileDown, ArrowRight } from "lucide-react";
 
@@ -15,24 +16,6 @@ interface CartItem {
   qty: number;
   images?: string[];
 }
-
-const DIVISIONS = [
-  "Dhaka",
-  "Chattogram",
-  "Rajshahi",
-  "Khulna",
-  "Barishal",
-  "Sylhet",
-  "Rangpur",
-  "Mymensingh",
-];
-
-const PAYMENT_METHODS = [
-  { value: "cod", label: "Cash on Delivery" },
-  { value: "bkash", label: "bKash" },
-  { value: "nagad", label: "Nagad" },
-  { value: "rocket", label: "Rocket" },
-];
 
 function getCart(): CartItem[] {
   try {
@@ -51,21 +34,31 @@ export default function CartPage() {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [placed, setPlaced] = useState<any>(null);
   const [method, setMethod] = useState("cod");
-  const [deliverySettings, setDeliverySettings] = useState<any>(null);
+  const [storeSettings, setStoreSettings] = useState<any>(null);
+  const [countries, setCountries] = useState<Country[]>([]);
 
   useEffect(() => {
     settingsApi
       .public()
-      .then((r) => setDeliverySettings(r.data?.delivery || null))
+      .then((r) => {
+        setStoreSettings(r.data);
+        setMethod(
+          r.data?.payments?.methods?.find((m: any) => m.enabled)?.id || "cod"
+        );
+      })
+      .catch(() => {});
+    loadCountries()
+      .then((list) => setCountries(list))
       .catch(() => {});
   }, []);
+
   const [address, setAddress] = useState(() => {
     const base = {
       full_name: "",
       phone: "",
-      division: "Dhaka",
-      district: "",
-      upazila: "",
+      country: "US",
+      state: "",
+      city: "",
       address_line: "",
       postal_code: "",
     };
@@ -80,6 +73,14 @@ export default function CartPage() {
     }
   });
 
+  // Default the shipping country to the store's country once settings load
+  useEffect(() => {
+    const storeCountry = storeSettings?.store?.country;
+    if (storeCountry) {
+      setAddress((a: any) => (a.country ? a : { ...a, country: storeCountry }));
+    }
+  }, [storeSettings]);
+
   function updateQty(i: number, delta: number) {
     const next = [...items];
     next[i].qty = Math.max(1, next[i].qty + delta);
@@ -93,16 +94,20 @@ export default function CartPage() {
     localStorage.setItem("cart", JSON.stringify(next));
   }
 
+  const paymentMethods: { id: string; label: string }[] =
+    storeSettings?.payments?.methods?.filter((m: any) => m.enabled) || [];
+
   const subtotal = items.reduce((s, it) => s + it.final_price * it.qty, 0);
   const delivery = subtotal === 0 ? 0 : (() => {
-    const d = deliverySettings || {};
+    const d = storeSettings?.delivery || {};
     const threshold = parseFloat(d.free_delivery_threshold) || 0;
     const freeEnabled = Boolean(d.free_delivery_enabled);
     if (freeEnabled && threshold > 0 && subtotal >= threshold) return 0;
-    const isDhaka = address.division?.toLowerCase().trim() === "dhaka";
-    return isDhaka
-      ? parseFloat(d.inside_dhaka) || 0
-      : parseFloat(d.outside_dhaka) || 0;
+    const storeCountry = (storeSettings?.store?.country || "").toUpperCase();
+    const isLocal = (address.country || "").toUpperCase() === storeCountry;
+    return isLocal
+      ? parseFloat(d.local_charge) || 0
+      : parseFloat(d.international_charge) || 0;
   })();
   const total = subtotal + delivery;
 
@@ -152,7 +157,7 @@ export default function CartPage() {
             </div>
             <h1 className="text-2xl font-bold mt-4 text-slate-900 dark:text-white">Order Confirmed</h1>
             <p className="mt-2 text-slate-600 dark:text-slate-400">
-              Order <strong>{placed.order_number}</strong> · {formatBDT(placed.total)}
+              Order <strong>{placed.order_number}</strong> · {formatMoney(placed.total)}
             </p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Payment: {placed.payment_method} ({placed.payment_status})
@@ -180,7 +185,7 @@ export default function CartPage() {
           <div className="card max-w-xl mx-auto p-12 text-center">
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">Your cart is empty</h1>
             <p className="mt-2 text-slate-500 text-sm">
-              Browse products across Bangladesh and add your favorites.
+              Browse products from sellers worldwide and add your favorites.
             </p>
             <Link href="/products" className="btn-primary inline-flex mt-6">
               Browse Products
@@ -204,7 +209,7 @@ export default function CartPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate text-slate-900 dark:text-white">{it.name}</p>
                       <p className="text-slate-700 dark:text-slate-300 font-semibold text-sm mt-0.5">
-                        {formatBDT(it.final_price)}
+                        {formatMoney(it.final_price)}
                       </p>
                     </div>
                     <div className="flex items-center border rounded-lg">
@@ -257,34 +262,37 @@ export default function CartPage() {
                       onChange={(e) => setAddress({ ...address, full_name: e.target.value })}
                       className="input col-span-2"
                     />
-                    <input
-                      required
-                      placeholder="Phone (01xxxxxxxxx)"
-                      value={address.phone}
-                      onChange={(e) => setAddress({ ...address, phone: e.target.value })}
-                      className="input col-span-2"
-                    />
+                    <div className="col-span-2">
+                      <IntlPhoneInput
+                        value={address.phone}
+                        onChange={(v) => setAddress({ ...address, phone: v })}
+                        defaultCountry={address.country}
+                      />
+                    </div>
                     <select
-                      value={address.division}
-                      onChange={(e) => setAddress({ ...address, division: e.target.value })}
-                      className="input"
+                      required
+                      value={address.country}
+                      onChange={(e) => setAddress({ ...address, country: e.target.value })}
+                      className="input col-span-2"
                     >
-                      {DIVISIONS.map((d) => (
-                        <option key={d}>{d}</option>
+                      {countries.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.name}
+                        </option>
                       ))}
+                      {!countries.length && <option value={address.country}>{address.country}</option>}
                     </select>
                     <input
                       required
-                      placeholder="District"
-                      value={address.district}
-                      onChange={(e) => setAddress({ ...address, district: e.target.value })}
+                      placeholder="City"
+                      value={address.city}
+                      onChange={(e) => setAddress({ ...address, city: e.target.value })}
                       className="input"
                     />
                     <input
-                      required
-                      placeholder="Upazila/Thana"
-                      value={address.upazila}
-                      onChange={(e) => setAddress({ ...address, upazila: e.target.value })}
+                      placeholder="State / Province (optional)"
+                      value={address.state}
+                      onChange={(e) => setAddress({ ...address, state: e.target.value })}
                       className="input"
                     />
                     <input
@@ -295,7 +303,7 @@ export default function CartPage() {
                     />
                     <textarea
                       required
-                      placeholder="Full address / area"
+                      placeholder="Street address / area"
                       value={address.address_line}
                       onChange={(e) => setAddress({ ...address, address_line: e.target.value })}
                       className="input col-span-2"
@@ -305,13 +313,13 @@ export default function CartPage() {
                   <div>
                     <label className="block text-sm font-medium mb-2 text-slate-900 dark:text-slate-200">Payment method</label>
                     <div className="grid grid-cols-2 gap-2">
-                      {PAYMENT_METHODS.map((pm) => (
+                      {paymentMethods.map((pm) => (
                         <button
-                          key={pm.value}
+                          key={pm.id}
                           type="button"
-                          onClick={() => setMethod(pm.value)}
+                          onClick={() => setMethod(pm.id)}
                           className={`px-3 py-2 rounded-xl border text-xs font-medium transition ${
-                            method === pm.value
+                            method === pm.id
                               ? "border-sky-600 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400"
                               : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900"
                           }`}
@@ -325,15 +333,15 @@ export default function CartPage() {
                   <div className="border-t dark:border-slate-700 pt-4 space-y-1 text-sm">
                     <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Subtotal</span>
-                      <span>{formatBDT(subtotal)}</span>
+                      <span>{formatMoney(subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Delivery</span>
-                      <span>{delivery === 0 ? "Free" : formatBDT(delivery)}</span>
+                      <span>{delivery === 0 ? "Free" : formatMoney(delivery)}</span>
                     </div>
                     <div className="flex justify-between font-bold text-base mt-1">
                       <span className="text-slate-900 dark:text-white">Total</span>
-                      <span className="text-sky-600 dark:text-sky-400">{formatBDT(total)}</span>
+                      <span className="text-sky-600 dark:text-sky-400">{formatMoney(total)}</span>
                     </div>
                   </div>
 
@@ -342,7 +350,7 @@ export default function CartPage() {
                     disabled={placing}
                     className="btn-primary w-full !py-3"
                   >
-                    {placing ? "Placing order..." : `Place Order · ${formatBDT(total)}`}
+                    {placing ? "Placing order..." : `Place Order · ${formatMoney(total)}`}
                   </button>
                 </form>
               )}

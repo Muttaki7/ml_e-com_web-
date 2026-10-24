@@ -2,21 +2,27 @@ from functools import lru_cache
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_SECRET_KEY = "change-me-to-a-long-random-string-at-least-64-chars"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    APP_NAME: str = "Bangladesh E-Commerce ERP"
+    APP_NAME: str = "Global Commerce ERP"
     APP_ENV: str = "development"
     DEBUG: bool = True
-    SECRET_KEY: str = "change-me-to-a-long-random-string-at-least-64-chars"
+    SECRET_KEY: str = DEFAULT_SECRET_KEY
     API_V1_PREFIX: str = "/api/v1"
-    TIMEZONE: str = "Asia/Dhaka"
-    CURRENCY: str = "BDT"
-    CURRENCY_SYMBOL: str = "৳"
+    TIMEZONE: str = "UTC"
+    CURRENCY: str = "USD"
+    CURRENCY_SYMBOL: str = "$"
+    # Used to distinguish domestic vs international delivery when the admin
+    # has not set a store country in site settings.
+    STORE_COUNTRY: str = "US"
+    ORDER_NUMBER_PREFIX: str = "ORD"
 
     MONGODB_URI: str = "mongodb://localhost:27017"
-    MONGODB_DB: str = "bd_ecommerce_erp"
+    MONGODB_DB: str = "global_ecommerce_erp"
 
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -24,15 +30,33 @@ class Settings(BaseSettings):
     ADMIN_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     ADMIN_REFRESH_TOKEN_EXPIRE_DAYS: int = 1
 
-    TOTP_ISSUER: str = "BD-ERP-Admin"
+    TOTP_ISSUER: str = "Global-ERP"
     TOTP_DIGITS: int = 6
     TOTP_INTERVAL: int = 30
     MAX_2FA_ATTEMPTS: int = 5
+    MAX_LOGIN_ATTEMPTS: int = 5
     LOCKOUT_MINUTES: int = 15
 
     RATE_LIMIT_PER_MINUTE: int = 60
+    # Only enable when every request passes through a proxy you control that
+    # overwrites X-Forwarded-For. Otherwise clients can spoof their IP.
+    TRUST_PROXY_HEADERS: bool = False
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
+    # International card payments (Stripe)
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_BASE_URL: str = "https://api.stripe.com/v1"
+    # Shared HMAC-SHA256 secret for gateway callbacks (X-Payment-Signature).
+    # When empty, payment callbacks are rejected until configured.
+    PAYMENT_CALLBACK_SECRET: str = ""
+
+    # PayPal
+    PAYPAL_CLIENT_ID: str = ""
+    PAYPAL_CLIENT_SECRET: str = ""
+    PAYPAL_BASE_URL: str = "https://api-m.sandbox.paypal.com"
+
+    # Bangladesh mobile-banking providers (enable only for BD deployments)
     BKASH_API_KEY: str = ""
     BKASH_SECRET: str = ""
     BKASH_USERNAME: str = ""

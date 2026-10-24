@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from typing import Optional, List
 from bson import ObjectId
@@ -30,7 +31,7 @@ async def create_admin(data: dict, creator_id: str, creator_is_main: bool) -> di
         "full_name": data["full_name"],
         "email": data["email"].lower(),
         "phone": data.get("phone"),
-        "password_hash": hash_password(data["temporary_password"]),
+        "password_hash": await asyncio.to_thread(hash_password, data["temporary_password"]),
         "role": role,
         "permissions": perms,
         "two_factor_required": data.get("two_factor_required", True),

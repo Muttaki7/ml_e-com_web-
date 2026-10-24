@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { orderApi, formatBDT, getApiError, downloadBlob } from "@/lib/api";
+import { orderApi, formatMoney, getApiError, downloadBlob } from "@/lib/api";
 import { StorefrontHeader } from "@/components/StorefrontHeader";
 import { Footer } from "@/components/Footer";
+import TwoFactorCard from "@/components/TwoFactorCard";
 import toast from "react-hot-toast";
 import { FileDown, ShoppingBag } from "lucide-react";
 
@@ -71,10 +72,16 @@ export default function MyOrdersPage() {
       <StorefrontHeader />
 
       <main className="max-w-4xl mx-auto px-4 py-8 w-full flex-1">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Orders</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Account</h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-          Track your orders and download your invoices.
+          Track your orders, download invoices, and manage account security.
         </p>
+
+        <div className="mt-6">
+          <TwoFactorCard scope="customer" />
+        </div>
+
+        <h2 className="mt-8 text-lg font-semibold text-slate-900 dark:text-white">My Orders</h2>
 
         {loading ? (
           <div className="mt-6 space-y-3">
@@ -104,7 +111,7 @@ export default function MyOrdersPage() {
                   <div>
                     <p className="font-semibold text-slate-900 dark:text-white">{o.order_number}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {o.created_at ? new Date(o.created_at).toLocaleString("en-BD") : ""}
+                      {o.created_at ? new Date(o.created_at).toLocaleString() : ""}
                     </p>
                   </div>
                   <span
@@ -123,7 +130,7 @@ export default function MyOrdersPage() {
                         <span className="truncate">
                           {it.product_name || it.name} × {it.quantity ?? it.qty}
                         </span>
-                        <span>{formatBDT(it.total_price ?? it.line_total ?? 0)}</span>
+                        <span>{formatMoney(it.total_price ?? it.line_total ?? 0)}</span>
                       </li>
                     ))}
                   </ul>
@@ -132,7 +139,7 @@ export default function MyOrdersPage() {
                 <div className="mt-4 pt-3 border-t dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm">
                     <span className="text-slate-500 dark:text-slate-400">Total </span>
-                    <span className="font-bold text-sky-600 dark:text-sky-400">{formatBDT(o.total || 0)}</span>
+                    <span className="font-bold text-sky-600 dark:text-sky-400">{formatMoney(o.total || 0)}</span>
                     {o.payment_method && (
                       <span className="text-slate-400 dark:text-slate-500 text-xs ml-2">
                         · {o.payment_method} {o.payment_status ? `(${o.payment_status})` : ""}

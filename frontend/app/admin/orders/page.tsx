@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { adminApi, formatBDT, getApiError, downloadBlob } from "@/lib/api";
+import { adminApi, formatMoney, getApiError, downloadBlob } from "@/lib/api";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { AdminShell } from "@/components/AdminShell";
 import toast from "react-hot-toast";
@@ -130,7 +130,7 @@ export default function AdminOrdersPage() {
                   </span>
                 </td>
                 <td className="text-slate-600 dark:text-slate-400">{o.payment_status}</td>
-                <td className="font-semibold text-slate-900 dark:text-white">{formatBDT(o.total)}</td>
+                <td className="font-semibold text-slate-900 dark:text-white">{formatMoney(o.total)}</td>
                 <td>
                   <span
                     className={`inline-block px-2 py-0.5 rounded-full text-xs ${

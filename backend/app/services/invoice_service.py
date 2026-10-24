@@ -21,10 +21,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from app.core.database import get_db
 
 INVOICE_DIR = Path(__file__).resolve().parents[3] / "uploads" / "invoices"
-BRAND = "BD Shop"
-COMPANY_NAME = "Bangladesh E-Commerce + ERP"
-COMPANY_ADDRESS = "Head Office, Dhaka 1207, Bangladesh"
-SUPPORT = "support@bdshop.local  .  +880 1700-000000"
+BRAND = "GlobalShop"
 
 PRIMARY = colors.HexColor(0x0F172A)
 ACCENT = colors.HexColor(0x7163FF)
@@ -33,11 +30,28 @@ LIGHT = colors.HexColor(0xF1F5F9)
 GRID_COLOR = colors.HexColor(0xE2E8F0)
 
 
-def _fmt_money(value) -> str:
+async def _company_info() -> dict:
+    """Company block for the invoice header, from admin-configured site settings."""
+    from app.api.v1.settings import get_settings_doc, get_store_meta
+    doc = await get_settings_doc()
+    company = doc.get("company") or {}
+    meta = await get_store_meta()
+    support_bits = [company.get("support_email"), company.get("support_phone")]
+    support = "  ·  ".join([b for b in support_bits if b]) or "—"
+    return {
+        "brand": BRAND,
+        "name": company.get("name") or "Global Commerce + ERP",
+        "address": company.get("address") or "",
+        "support": support,
+        "currency": meta["currency"],
+    }
+
+
+def _fmt_money(value, currency: str = "USD") -> str:
     try:
-        return f"BDT {float(value or 0):,.2f}"
+        return f"{currency} {float(value or 0):,.2f}"
     except (TypeError, ValueError):
-        return "BDT 0.00"
+        return f"{currency} 0.00"
 
 
 def _fmt_dt(value) -> str:
@@ -81,6 +95,9 @@ async def generate_order_invoice(order_id: str) -> Path:
     if order.get("customer_id"):
         customer = await db.customers.find_one({"_id": order["customer_id"]})
 
+    company = await _company_info()
+    currency = order.get("currency") or company["currency"]
+
     INVOICE_DIR.mkdir(parents=True, exist_ok=True)
     path = INVOICE_DIR / f"INV-{order_number}.pdf"
 
@@ -107,14 +124,14 @@ async def generate_order_invoice(order_id: str) -> Path:
         leftMargin=0.7 * inch,
         rightMargin=0.7 * inch,
         title=f"INV-{order_number}",
-        author=BRAND,
+        author=company["brand"],
     )
     story = []
 
     # ----- Header -----
-    story.append(Paragraph(BRAND, h1))
-    story.append(Paragraph(COMPANY_NAME, h2))
-    story.append(Paragraph(f"{COMPANY_ADDRESS}<br/>{SUPPORT}", muted))
+    story.append(Paragraph(company["brand"], h1))
+    story.append(Paragraph(company["name"], h2))
+    story.append(Paragraph(f"{company['address']}<br/>{company['support']}", muted))
     story.append(Paragraph("INVOICE", title))
 
     # ----- Meta rows -----
@@ -153,8 +170,8 @@ async def generate_order_invoice(order_id: str) -> Path:
             ("Customer", (customer or {}).get("full_name") or ship.get("full_name") or "—"),
             ("Email", (customer or {}).get("email") or "—"),
             ("Phone", (customer or {}).get("phone") or ship.get("phone") or "—"),
-            ("Division", ship.get("division") or "—"),
-            ("District / Upazila", f"{ship.get('district') or '—'} / {ship.get('upazila') or '—'}"),
+            ("Country", ship.get("country") or "—"),
+            ("City / State", " / ".join([p for p in [ship.get("city"), ship.get("state")] if p]) or "—"),
             ("Address", ship.get("address_line") or "—"),
             ("Postal Code", ship.get("postal_code") or "—"),
         ]],
@@ -181,8 +198,8 @@ async def generate_order_invoice(order_id: str) -> Path:
             it.get("name") or "—",
             it.get("sku") or "—",
             str(it.get("quantity") or 0),
-            f"BDT {float(it.get('unit_price') or 0):,.2f}",
-            f"BDT {float(it.get('line_total') or 0):,.2f}",
+            _fmt_money(it.get("unit_price"), currency),
+            _fmt_money(it.get("line_total"), currency),
         ])
     items = Table(
         item_data,
@@ -196,11 +213,11 @@ async def generate_order_invoice(order_id: str) -> Path:
 
     # ----- Totals -----
     totals_rows = [
-        ("Subtotal", _fmt_money(order.get("subtotal"))),
-        ("Discount", f"- {_fmt_money(order.get('discount'))}"),
-        ("Delivery Charge", _fmt_money(order.get("delivery_charge"))),
-        ("Tax", _fmt_money(order.get("tax"))),
-        ("GRAND TOTAL", _fmt_money(order.get("total"))),
+        ("Subtotal", _fmt_money(order.get("subtotal"), currency)),
+        ("Discount", f"- {_fmt_money(order.get('discount'), currency)}"),
+        ("Delivery Charge", _fmt_money(order.get("delivery_charge"), currency)),
+        ("Tax", _fmt_money(order.get("tax"), currency)),
+        ("GRAND TOTAL", _fmt_money(order.get("total"), currency)),
     ]
     totals = Table(
         [[Paragraph(f"<b>{k}</b>", body), Paragraph(f"<b>{v}</b>", body)] for k, v in totals_rows],
@@ -240,7 +257,7 @@ async def generate_order_invoice(order_id: str) -> Path:
     # ----- Footer -----
     story.append(Spacer(1, 12))
     story.append(Paragraph(
-        f"Generated {_fmt_dt(datetime.now(timezone.utc))}  ·  {BRAND}  ·  {COMPANY_NAME}",
+        f"Generated {_fmt_dt(datetime.now(timezone.utc))}  ·  {company['brand']}  ·  {company['name']}",
         muted,
     ))
 

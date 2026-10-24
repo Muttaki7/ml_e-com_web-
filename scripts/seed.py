@@ -1,11 +1,13 @@
-﻿"""
-Seed realistic Bangladesh demo data so ML & analytics dashboards show meaningful trends.
-Run: cd backend && python -m scripts.seed   (or from repo root)
+"""
+Seed realistic multi-country demo data so ML & analytics dashboards show
+meaningful trends. Run: cd backend && python -m scripts.seed
 """
 import asyncio
 import random
 from datetime import datetime, timezone, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
+import phonenumbers
+from phonenumbers import PhoneNumberFormat, PhoneNumberType
 import sys
 import os
 
@@ -24,29 +26,63 @@ CATEGORIES = [
 ]
 
 PRODUCT_TEMPLATES = [
-    ("Samsung Galaxy A55", "Electronics", "Mobile Phones", 32000, 38999, 45),
-    ("Xiaomi Redmi Note 13", "Electronics", "Mobile Phones", 18000, 22999, 80),
-    ("Walton Laptop i5", "Electronics", "Laptops", 45000, 54999, 25),
-    ("Anker PowerBank 20000mAh", "Electronics", "Accessories", 1800, 2499, 120),
-    ("Men's Cotton Panjabi", "Fashion", "Men's Clothing", 650, 999, 200),
-    ("Women's Cotton Saree", "Fashion", "Women's Clothing", 1200, 1899, 150),
-    ("Sports Shoes Unisex", "Fashion", "Shoes", 900, 1499, 90),
-    ("Non-stick Fry Pan", "Home & Living", "Kitchen", 450, 799, 70),
-    ("Miniket Rice 25kg", "Groceries", "Rice & Flour", 1800, 2150, 300),
-    ("Pran Spicy Chanachur", "Groceries", "Snacks", 35, 55, 500),
-    ("Himalaya Face Wash", "Beauty", "Skincare", 180, 299, 200),
-    ("Maybelline Lipstick", "Beauty", "Makeup", 350, 550, 100),
+    ("Samsung Galaxy A55", "Electronics", "Mobile Phones", 320, 389, 45),
+    ("Xiaomi Redmi Note 13", "Electronics", "Mobile Phones", 180, 229, 80),
+    ("Acer Aspire 5 Laptop", "Electronics", "Laptops", 450, 549, 25),
+    ("Anker PowerBank 20000mAh", "Electronics", "Accessories", 18, 24, 120),
+    ("Men's Cotton Shirt", "Fashion", "Men's Clothing", 6, 9, 200),
+    ("Women's Summer Dress", "Fashion", "Women's Clothing", 12, 18, 150),
+    ("Sports Shoes Unisex", "Fashion", "Shoes", 9, 14, 90),
+    ("Non-stick Fry Pan", "Home & Living", "Kitchen", 4, 7, 70),
+    ("Jasmine Rice 10kg", "Groceries", "Rice & Flour", 18, 21, 300),
+    ("Spicy Snack Mix", "Groceries", "Snacks", 0.35, 0.55, 500),
+    ("Gentle Face Wash", "Beauty", "Skincare", 1.8, 2.99, 200),
+    ("Matte Lipstick", "Beauty", "Makeup", 3.5, 5.5, 100),
 ]
 
-DIVISIONS = ["Dhaka", "Chattogram", "Rajshahi", "Khulna", "Sylhet", "Rangpur"]
-DISTRICTS = {
-    "Dhaka": ["Dhaka", "Gazipur", "Narayanganj"],
-    "Chattogram": ["Chattogram", "Cox's Bazar"],
-    "Rajshahi": ["Rajshahi", "Bogura"],
-    "Khulna": ["Khulna", "Jessore"],
-    "Sylhet": ["Sylhet", "Moulvibazar"],
-    "Rangpur": ["Rangpur", "Dinajpur"],
-}
+# (country code, [cities])
+MARKETS = [
+    ("US", ["New York", "Los Angeles", "Chicago", "Houston"]),
+    ("GB", ["London", "Manchester", "Birmingham"]),
+    ("CA", ["Toronto", "Vancouver", "Montreal"]),
+    ("AU", ["Sydney", "Melbourne", "Brisbane"]),
+    ("DE", ["Berlin", "Munich", "Hamburg"]),
+    ("IN", ["Mumbai", "Delhi", "Bangalore"]),
+    ("BD", ["Dhaka", "Chattogram", "Sylhet"]),
+    ("SG", ["Singapore"]),
+    ("AE", ["Dubai", "Abu Dhabi"]),
+    ("BR", ["São Paulo", "Rio de Janeiro"]),
+]
+
+_PHONE_POOL: dict[str, list[str]] = {}
+
+
+def _demo_phone(region: str) -> str:
+    """A valid E.164 mobile number for the market.
+
+    Seeded numbers must satisfy the same libphonenumber validation the API
+    applies, otherwise checkout rejects the customer's pre-filled phone.
+    """
+    pool = _PHONE_POOL.get(region)
+    if pool is None:
+        base = (
+            phonenumbers.example_number_for_type(region, PhoneNumberType.MOBILE)
+            or phonenumbers.example_number(region)
+        )
+        pool = []
+        for offset in range(500):
+            candidate = phonenumbers.PhoneNumber(
+                country_code=base.country_code,
+                national_number=base.national_number + offset,
+            )
+            if phonenumbers.is_valid_number(candidate):
+                pool.append(phonenumbers.format_number(candidate, PhoneNumberFormat.E164))
+            if len(pool) >= 25:
+                break
+        if not pool:
+            pool = [phonenumbers.format_number(base, PhoneNumberFormat.E164)]
+        _PHONE_POOL[region] = pool
+    return random.choice(pool)
 
 
 async def seed():
@@ -61,7 +97,7 @@ async def seed():
     main_admin = {
         "full_name": "Main Administrator",
         "email": "admin@example.com",
-        "phone": "01700000001",
+        "phone": "+12025550101",
         "password_hash": hash_password("Admin@12345"),
         "role": AdminRole.MAIN_ADMIN,
         "permissions": ROLE_PERMISSIONS[AdminRole.MAIN_ADMIN],
@@ -81,10 +117,10 @@ async def seed():
 
     # Inventory Manager example
     inv_admin = {
-        "full_name": "Rahim Inventory",
-        "email": "rahim@example.com",
-        "phone": "01700000002",
-        "password_hash": hash_password("Rahim@12345"),
+        "full_name": "Robin Inventory",
+        "email": "robin@example.com",
+        "phone": "+12025550102",
+        "password_hash": hash_password("Robin@12345"),
         "role": AdminRole.INVENTORY_MANAGER,
         "permissions": ROLE_PERMISSIONS[AdminRole.INVENTORY_MANAGER],
         "two_factor_required": True,
@@ -135,11 +171,11 @@ async def seed():
                 "name": p_name,
                 "slug": p_name.lower().replace(" ", "-")[:60],
                 "sku": sku,
-                "description": f"Quality {p_name} available across Bangladesh. Fast delivery.",
+                "description": f"Quality {p_name} with fast local and international delivery.",
                 "category_id": cat_map.get(sub_cat) or cat_map.get(root_cat),
                 "brand": name.split()[0],
-                "purchase_price": purchase + i * 100,
-                "selling_price": sell + i * 150,
+                "purchase_price": purchase + i,
+                "selling_price": sell + i * 1.5,
                 "discount_percent": random.choice([0, 5, 10, 15]),
                 "tax_percent": 0,
                 "stock_quantity": stock - i * 5,
@@ -166,26 +202,28 @@ async def seed():
             })
     print(f"Products: {len(product_ids)}")
 
-    # Customers
+    # Customers across multiple countries
     customer_ids = []
     for i in range(80):
-        div = random.choice(DIVISIONS)
-        dist = random.choice(DISTRICTS[div])
+        code, cities = random.choice(MARKETS)
+        city = random.choice(cities)
+        phone = _demo_phone(code)
         doc = {
             "full_name": f"Customer {i+1}",
-            "email": f"customer{i+1}@example.bd",
-            "phone": f"017{random.randint(10000000, 99999999)}",
+            "email": f"customer{i+1}@example.com",
+            "phone": phone,
             "password_hash": hash_password("Customer@123"),
             "status": "active",
             "addresses": [{
                 "full_name": f"Customer {i+1}",
-                "phone": f"017{random.randint(10000000, 99999999)}",
-                "division": div,
-                "district": dist,
-                "upazila": dist,
-                "address_line": f"House {random.randint(1,200)}, Road {random.randint(1,20)}",
-                "postal_code": f"{random.randint(1000,9999)}",
+                "phone": phone,
+                "country": code,
+                "state": city,
+                "city": city,
+                "address_line": f"{random.randint(1,200)} Main Street",
+                "postal_code": f"{random.randint(10000,99999)}",
             }],
+            "two_factor": None,
             "created_at": datetime.now(timezone.utc) - timedelta(days=random.randint(5, 200)),
             "updated_at": datetime.now(timezone.utc),
         }
@@ -193,9 +231,10 @@ async def seed():
         customer_ids.append(r.inserted_id)
     print(f"Customers: {len(customer_ids)}")
 
-    # Orders (last 90 days) â€“ enough for ML trends
+    # Orders (last 90 days) – enough for ML trends
     products = await db.products.find({"status": "active"}).to_list(100)
     order_count = 0
+    store_country = settings.STORE_COUNTRY
     for day_offset in range(90, 0, -1):
         day = datetime.now(timezone.utc) - timedelta(days=day_offset)
         n_orders = random.randint(3, 12)
@@ -219,11 +258,12 @@ async def seed():
                     "line_total": round(line, 2),
                     "purchase_price": p.get("purchase_price", 0),
                 })
-            delivery = 60.0 if subtotal < 1000 else 0.0
+            code, cities = random.choice(MARKETS)
+            delivery = (5.0 if code == store_country else 25.0) if subtotal < 50 else 0.0
             total = subtotal + delivery
             method = random.choices(
-                [PaymentMethod.COD, PaymentMethod.BKASH, PaymentMethod.NAGAD],
-                weights=[0.55, 0.3, 0.15],
+                [PaymentMethod.COD, PaymentMethod.CARD, PaymentMethod.PAYPAL],
+                weights=[0.45, 0.4, 0.15],
             )[0]
             status = random.choices(
                 [OrderStatus.DELIVERED, OrderStatus.SHIPPED, OrderStatus.PENDING, OrderStatus.CANCELLED],
@@ -232,9 +272,9 @@ async def seed():
             pay_status = PaymentStatus.COD_COLLECTED if method == PaymentMethod.COD and status == OrderStatus.DELIVERED else (
                 PaymentStatus.PAID if status == OrderStatus.DELIVERED else PaymentStatus.PENDING
             )
-            div = random.choice(DIVISIONS)
+            city = random.choice(cities)
             order = {
-                "order_number": f"BD{day.strftime('%Y%m%d')}{random.randint(10000,99999)}",
+                "order_number": f"{settings.ORDER_NUMBER_PREFIX}{day.strftime('%Y%m%d')}{random.randint(10000,99999)}",
                 "customer_id": cust,
                 "items": items,
                 "subtotal": round(subtotal, 2),
@@ -242,13 +282,13 @@ async def seed():
                 "delivery_charge": delivery,
                 "tax": 0,
                 "total": round(total, 2),
-                "currency": "BDT",
+                "currency": settings.CURRENCY,
                 "shipping_address": {
                     "full_name": "Demo",
-                    "phone": "01700000000",
-                    "division": div,
-                    "district": random.choice(DISTRICTS[div]),
-                    "upazila": "Sadar",
+                    "phone": _demo_phone(code),
+                    "country": code,
+                    "state": city,
+                    "city": city,
                     "address_line": "Demo address",
                 },
                 "payment_method": method,
@@ -264,7 +304,7 @@ async def seed():
 
     print("\nSeed complete.")
     print("Login (admin): admin@example.com / Admin@12345")
-    print("Login (customer example): customer1@example.bd / Customer@123")
+    print("Login (customer example): customer1@example.com / Customer@123")
     client.close()
 
 

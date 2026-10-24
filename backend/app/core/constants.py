@@ -160,23 +160,17 @@ class PaymentStatus(str, Enum):
 
 class PaymentMethod(str, Enum):
     COD = "cod"
-    BKASH = "bkash"
+    CARD = "card"          # Stripe (international cards)
+    PAYPAL = "paypal"
+    BKASH = "bkash"        # Bangladesh (enable for BD deployments)
     NAGAD = "nagad"
     ROCKET = "rocket"
-    CARD = "card"
 
 
 class StockStatus(str, Enum):
     IN_STOCK = "in_stock"
     LOW_STOCK = "low_stock"
     OUT_OF_STOCK = "out_of_stock"
-
-
-# Bangladesh divisions (for localization)
-BD_DIVISIONS = [
-    "Dhaka", "Chattogram", "Rajshahi", "Khulna",
-    "Barishal", "Sylhet", "Rangpur", "Mymensingh",
-]
 
 
 def resolve_admin_permissions(

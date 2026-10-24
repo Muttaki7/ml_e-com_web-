@@ -46,7 +46,7 @@ async def batch_forecast(
 
 @router.get("/recommendations/purchase")
 async def smart_purchase_recommendations(
-    limit: int = 20,
+    limit: int = Query(20, ge=1, le=100),
     admin: dict = Depends(require_permission("ml.view_predictions", "inventory.view")),
 ):
     from app.core.database import get_db
@@ -83,7 +83,7 @@ async def list_models(admin: dict = Depends(require_permission("ml.view_predicti
             "version": "1.0.0",
             "method": "moving_average_trend",
             "status": "active",
-            "description": "Simple robust forecast for sparse retail data in Bangladesh market",
+            "description": "Simple robust forecast for sparse retail data across markets",
         },
         {
             "name": "product_intelligence_v1",
