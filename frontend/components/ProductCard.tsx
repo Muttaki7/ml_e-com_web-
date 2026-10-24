@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatMoney } from "@/lib/api";
+import { formatMoney, mediaUrl } from "@/lib/api";
 import { ImageOff, ShoppingCart } from "lucide-react";
 
 export function ProductCard({ p }: { p: any }) {
@@ -11,7 +11,7 @@ export function ProductCard({ p }: { p: any }) {
       <div className="aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden relative flex items-center justify-center">
         {p.images?.[0] ? (
           <img
-            src={p.images[0]}
+            src={mediaUrl(p.images[0])}
             alt={p.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"

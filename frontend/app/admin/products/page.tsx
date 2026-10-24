@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { adminApi, formatMoney, getApiError } from "@/lib/api";
+import { adminApi, formatMoney, getApiError, mediaUrl } from "@/lib/api";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { AdminShell } from "@/components/AdminShell";
 import toast from "react-hot-toast";
@@ -278,7 +278,7 @@ export default function AdminProductsPage() {
                   {form.images.map((url) => (
                     <div key={url} className="relative">
                       <img
-                        src={url}
+                        src={mediaUrl(url)}
                         alt="product"
                         className="w-16 h-16 rounded-lg border dark:border-slate-700 object-cover"
                       />
@@ -355,7 +355,7 @@ export default function AdminProductsPage() {
                       <div className="flex items-center gap-3">
                         {p.images?.[0] ? (
                           <img
-                            src={p.images[0]}
+                            src={mediaUrl(p.images[0])}
                             alt={p.name}
                             className="w-10 h-10 rounded-lg border dark:border-slate-700 object-cover"
                           />

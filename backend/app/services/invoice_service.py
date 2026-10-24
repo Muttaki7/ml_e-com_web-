@@ -19,8 +19,9 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
 from app.core.database import get_db
+from app.core.paths import UPLOAD_ROOT
 
-INVOICE_DIR = Path(__file__).resolve().parents[3] / "uploads" / "invoices"
+INVOICE_DIR = UPLOAD_ROOT / "invoices"
 BRAND = "GlobalShop"
 
 PRIMARY = colors.HexColor(0x0F172A)

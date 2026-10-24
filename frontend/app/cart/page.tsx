@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { orderApi, settingsApi, formatMoney, getApiError, downloadBlob } from "@/lib/api";
+import { orderApi, settingsApi, formatMoney, getApiError, downloadBlob, mediaUrl } from "@/lib/api";
 import { StorefrontHeader } from "@/components/StorefrontHeader";
 import { Footer } from "@/components/Footer";
 import IntlPhoneInput, { loadCountries, type Country } from "@/components/IntlPhoneInput";
@@ -77,6 +77,8 @@ export default function CartPage() {
   useEffect(() => {
     const storeCountry = storeSettings?.store?.country;
     if (storeCountry) {
+      // Store settings load asynchronously; seed the empty address field once they arrive.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAddress((a: any) => (a.country ? a : { ...a, country: storeCountry }));
     }
   }, [storeSettings]);
@@ -201,7 +203,7 @@ export default function CartPage() {
                   <div key={it.product_id} className="flex items-center gap-4 border dark:border-slate-700 rounded-xl p-3 bg-white dark:bg-slate-900">
                     <div className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center text-slate-400 text-xs">
                       {it.images?.[0] ? (
-                        <img src={it.images[0]} alt={it.name} className="w-full h-full object-cover" />
+                        <img src={mediaUrl(it.images[0])} alt={it.name} className="w-full h-full object-cover" />
                       ) : (
                         it.name?.slice(0, 2)
                       )}

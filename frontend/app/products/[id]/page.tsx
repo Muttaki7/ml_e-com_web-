@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { productApi, formatMoney } from "@/lib/api";
+import { productApi, formatMoney, mediaUrl } from "@/lib/api";
 import { StorefrontHeader } from "@/components/StorefrontHeader";
 import { Footer } from "@/components/Footer";
 import toast from "react-hot-toast";
@@ -99,7 +99,7 @@ export default function ProductDetailPage() {
             <div className="aspect-square bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden flex items-center justify-center text-6xl text-slate-300">
               {product.images?.[activeImage] ? (
                 <img
-                  src={product.images[activeImage]}
+                  src={mediaUrl(product.images[activeImage])}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />
@@ -118,7 +118,7 @@ export default function ProductDetailPage() {
                     }`}
                     title={`Image ${i + 1}`}
                   >
-                    <img src={url} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
+                    <img src={mediaUrl(url)} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -202,7 +202,7 @@ export default function ProductDetailPage() {
             <div className="mt-6 grid grid-cols-3 gap-2 text-center">
               {[
                 { icon: Truck, t: "Fast delivery", s: "2–5 days" },
-                { icon: ShieldCheck, t: "Secure", s: "Cards, PayPal & COD" },
+                { icon: ShieldCheck, t: "Secure", s: "Cash on Delivery" },
                 { icon: RotateCcw, t: "Easy returns", s: "7 days" },
               ].map((x) => (
                 <div key={x.t} className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/70">

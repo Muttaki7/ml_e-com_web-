@@ -3,7 +3,7 @@ import { Store, Truck, ShieldCheck, Headset, MapPin, Mail, Phone } from "lucide-
 
 const FEATURES = [
   { icon: Truck, title: "Fast Worldwide Delivery", sub: "Free over the order threshold" },
-  { icon: ShieldCheck, title: "Secure Checkout", sub: "COD · Cards · PayPal & more" },
+  { icon: ShieldCheck, title: "Secure Checkout", sub: "Cash on Delivery · 200+ countries" },
   { icon: Headset, title: "24/7 Support", sub: "Call or chat any time" },
 ];
 

@@ -1,6 +1,30 @@
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+// Same-origin by default: Caddy routes /api/* to FastAPI in production. Local
+// development overrides this in .env.development.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+
+const API_ORIGIN = (() => {
+  try {
+    if (/^https?:\/\//i.test(API_URL)) return new URL(API_URL).origin;
+  } catch {
+    // Relative API URL — media is served from the same origin.
+  }
+  return "";
+})();
+
+/**
+ * Resolve a backend-relative upload path to an absolute URL.
+ * Needed when the frontend and API are deployed on different hosts
+ * (e.g. Vercel frontend + Render backend), where a bare "/uploads/x.jpg"
+ * would resolve against the frontend origin and 404.
+ */
+export function mediaUrl(url?: string | null): string {
+  if (!url) return "";
+  if (/^(https?:|data:|blob:)/i.test(url)) return url;
+  if (url.startsWith("/uploads/")) return `${API_ORIGIN}${url}`;
+  return url;
+}
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -10,7 +34,6 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("access_token");
-    const type = localStorage.getItem("token_type"); // customer | admin
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -18,13 +41,85 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+function clearStoredSession() {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("token_type");
+  localStorage.removeItem("admin_user");
+  localStorage.removeItem("customer_user");
+}
+
+function isAuthEndpoint(url?: string) {
+  if (!url) return false;
+  return (
+    url.includes("/auth/customer/login") ||
+    url.includes("/auth/customer/register") ||
+    url.includes("/auth/customer/2fa/verify") ||
+    url.includes("/auth/admin/login") ||
+    url.includes("/auth/admin/2fa/verify") ||
+    url.includes("/auth/customer/refresh") ||
+    url.includes("/auth/admin/refresh") ||
+    url.includes("/auth/customer/logout") ||
+    url.includes("/auth/admin/logout")
+  );
+}
+
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  if (refreshPromise) return refreshPromise;
+
+  const refreshToken = localStorage.getItem("refresh_token");
+  if (!refreshToken) return null;
+
+  const isAdmin = localStorage.getItem("token_type") === "admin";
+  const endpoint = isAdmin ? "/auth/admin/refresh" : "/auth/customer/refresh";
+
+  refreshPromise = axios
+    .post(`${API_URL}${endpoint}`, { refresh_token: refreshToken })
+    .then(({ data }) => {
+      if (!data?.access_token) throw new Error("No access token in refresh response");
+      localStorage.setItem("access_token", data.access_token);
+      if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+      if (data.user) {
+        localStorage.setItem(
+          isAdmin ? "admin_user" : "customer_user",
+          JSON.stringify(data.user)
+        );
+      }
+      return data.access_token as string;
+    })
+    .catch(() => {
+      clearStoredSession();
+      return null;
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
+}
+
 api.interceptors.response.use(
   (r) => r,
   async (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
-      // optional: try refresh
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
+    const original = error.config as any;
+    const status = error.response?.status;
+    if (
+      status === 401 &&
+      typeof window !== "undefined" &&
+      original &&
+      !original._retry &&
+      !isAuthEndpoint(original.url)
+    ) {
+      original._retry = true;
+      const token = await refreshAccessToken();
+      if (token) {
+        original.headers = original.headers || {};
+        original.headers.Authorization = `Bearer ${token}`;
+        return api(original);
+      }
     }
     return Promise.reject(error);
   }

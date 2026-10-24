@@ -9,8 +9,15 @@ async def connect_db() -> None:
     global client, db
     # tz_aware: BSON datetimes are otherwise returned naive, which breaks
     # comparisons against the timezone-aware datetimes this app stores.
-    client = AsyncIOMotorClient(settings.MONGODB_URI, tz_aware=True)
+    client = AsyncIOMotorClient(
+        settings.MONGODB_URI,
+        tz_aware=True,
+        maxPoolSize=settings.MONGODB_MAX_POOL_SIZE,
+        serverSelectionTimeoutMS=5000,
+        appname=settings.APP_NAME,
+    )
     db = client[settings.MONGODB_DB]
+    await db.command("ping")
     # Ensure indexes
     await _create_indexes()
 
@@ -25,6 +32,16 @@ def get_db() -> AsyncIOMotorDatabase:
     if db is None:
         raise RuntimeError("Database not connected")
     return db
+
+
+async def database_healthy() -> bool:
+    if db is None:
+        return False
+    try:
+        await db.command("ping")
+        return True
+    except Exception:
+        return False
 
 
 async def _create_indexes() -> None:

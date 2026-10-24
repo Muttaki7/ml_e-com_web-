@@ -9,7 +9,7 @@ services:
     volumes:
       - mongo_data:/data/db
     environment:
-      MONGO_INITDB_DATABASE: bd_ecommerce_erp
+      MONGO_INITDB_DATABASE: global_ecommerce_erp
 
   redis:
     image: redis:7-alpine
@@ -28,7 +28,7 @@ services:
       - ./backend/.env.example
     environment:
       MONGODB_URI: mongodb://mongodb:27017
-      MONGODB_DB: bd_ecommerce_erp
+      MONGODB_DB: global_ecommerce_erp
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: docker-dev-secret-change-in-production-please-use-long-random
       CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000

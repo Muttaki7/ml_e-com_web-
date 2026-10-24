@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { productApi, settingsApi } from "@/lib/api";
+import { productApi, settingsApi, mediaUrl } from "@/lib/api";
 import { StorefrontHeader } from "@/components/StorefrontHeader";
 import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
@@ -159,8 +159,17 @@ export default function HomePage() {
       .public()
       .then((r) => {
         const d = r.data || {};
-        setBanner(d.banner || null);
-        setPosters((d.posters || []).filter((p: any) => p.visible).slice(0, 4));
+        const resolveImages = (items: any) =>
+          Array.isArray(items)
+            ? items.filter((src: any) => typeof src === "string" && src.length > 0).map(mediaUrl)
+            : [];
+        setBanner(d.banner ? { ...d.banner, images: resolveImages(d.banner.images) } : null);
+        setPosters(
+          (d.posters || [])
+            .filter((p: any) => p.visible)
+            .slice(0, 4)
+            .map((p: any) => ({ ...p, images: resolveImages(p.images) }))
+        );
       })
       .catch(() => {});
     productApi
@@ -217,7 +226,7 @@ export default function HomePage() {
             </h1>
             <p className="mt-4 text-sky-100 text-lg">
               {banner?.subtitle ||
-                "Products from trusted sellers. Cards, PayPal & Cash on Delivery — delivered to 200+ countries."}
+                "Products from trusted sellers. Cash on Delivery — delivered to 200+ countries and territories."}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/products" className="btn bg-white text-sky-700 hover:bg-sky-50 font-bold !px-6 !py-3">
@@ -274,7 +283,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 py-4 grid sm:grid-cols-3 gap-3 text-sm">
           {[
             { icon: Truck, t: "Worldwide delivery", s: "200+ countries & territories" },
-            { icon: ShieldCheck, t: "100% secure", s: "Cards, PayPal, COD & more" },
+            { icon: ShieldCheck, t: "100% secure", s: "Cash on Delivery · order tracking" },
             { icon: BadgePercent, t: "Smart deals", s: "AI-driven discounts" },
           ].map((x) => (
             <div key={x.t} className="flex items-center gap-3 text-slate-700 dark:text-slate-200">

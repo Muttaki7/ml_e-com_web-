@@ -86,6 +86,19 @@ def _demo_phone(region: str) -> str:
 
 
 async def seed():
+    # This script deletes collections. Never allow it to run against a
+    # production deployment or a remote database.
+    if settings.is_production:
+        raise SystemExit("Refusing to seed demo data when APP_ENV is production")
+    from urllib.parse import urlparse
+
+    host = (urlparse(settings.MONGODB_URI).hostname or "").lower()
+    if host not in {"localhost", "127.0.0.1", "::1"} and not os.getenv("ALLOW_REMOTE_SEED"):
+        raise SystemExit(
+            f"Refusing to seed non-local MongoDB host '{host}'. "
+            "Set ALLOW_REMOTE_SEED=1 only if you are certain this is a disposable database."
+        )
+
     client = AsyncIOMotorClient(settings.MONGODB_URI)
     db = client[settings.MONGODB_DB]
 

@@ -1,7 +1,6 @@
 import aiofiles
 from copy import deepcopy
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -12,6 +11,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.core.database import get_db
 from app.core.config import settings
 from app.core.countries import COUNTRIES, get_country
+from app.core.paths import UPLOAD_ROOT
 from app.api.deps import require_permission
 
 router = APIRouter(tags=["Settings"])
@@ -21,7 +21,11 @@ MAX_SLIDESHOW_IMAGES = 12
 MAX_IMAGE_URL_LENGTH = 1000
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-UPLOAD_DIR = Path(__file__).resolve().parents[4] / "uploads" / "site"
+UPLOAD_DIR = UPLOAD_ROOT / "site"
+# Online gateways remain code-complete but are intentionally not offered until
+# real provider credentials and webhook testing are in place. COD is always
+# safe to expose because no external provider is involved.
+SUPPORTED_PAYMENT_METHODS = {"cod"}
 
 DEFAULT_SETTINGS: dict = {
     "store": {
@@ -34,7 +38,7 @@ DEFAULT_SETTINGS: dict = {
         "badge": "AI-powered pricing & stock forecasting",
         "title": "Shop smarter, anywhere in the world",
         "subtitle": (
-            "Products from trusted sellers. Cards, PayPal & Cash on Delivery — "
+            "Products from trusted sellers. Cash on Delivery — "
             "delivered to 200+ countries and territories."
         ),
         "images": [],
@@ -54,8 +58,8 @@ DEFAULT_SETTINGS: dict = {
     "payments": {
         "methods": [
             {"id": "cod", "label": "Cash on Delivery", "enabled": True},
-            {"id": "card", "label": "Credit / Debit Card", "enabled": True},
-            {"id": "paypal", "label": "PayPal", "enabled": True},
+            {"id": "card", "label": "Credit / Debit Card", "enabled": False},
+            {"id": "paypal", "label": "PayPal", "enabled": False},
             {"id": "bkash", "label": "bKash (Bangladesh)", "enabled": False},
             {"id": "nagad", "label": "Nagad (Bangladesh)", "enabled": False},
             {"id": "rocket", "label": "Rocket (Bangladesh)", "enabled": False},
@@ -158,6 +162,26 @@ def _apply_defaults(doc: dict) -> dict:
     for default in DEFAULT_SETTINGS["posters"][len(posters):]:
         posters.append(deepcopy(default))
     merged["posters"] = posters
+
+    payments = merged.get("payments")
+    if not isinstance(payments, dict):
+        payments = {}
+    methods = payments.get("methods")
+    if not isinstance(methods, list) or not methods:
+        methods = deepcopy(DEFAULT_SETTINGS["payments"]["methods"])
+    cleaned_methods = []
+    for raw in methods:
+        if not isinstance(raw, dict) or not raw.get("id"):
+            continue
+        method = dict(raw)
+        method["enabled"] = bool(method.get("enabled")) and method["id"] in SUPPORTED_PAYMENT_METHODS
+        if method["id"] == "cod":
+            # COD is the guaranteed launch method; online gateways are opt-in
+            # only after provider credentials and webhook tests exist.
+            method["enabled"] = True
+        cleaned_methods.append(method)
+    payments["methods"] = cleaned_methods
+    merged["payments"] = payments
     return merged
 
 
@@ -197,7 +221,10 @@ async def get_delivery_charge(subtotal: float, country: str) -> float:
 
 def enabled_payment_methods(doc: dict) -> list[dict]:
     methods = ((doc or {}).get("payments") or {}).get("methods") or []
-    return [m for m in methods if m.get("enabled")]
+    return [
+        m for m in methods
+        if m.get("enabled") and m.get("id") in SUPPORTED_PAYMENT_METHODS
+    ]
 
 
 class StoreIn(BaseModel):
@@ -297,6 +324,16 @@ async def admin_update_settings(
     db = get_db()
     current = await get_settings_doc()
     update = body.model_dump(exclude_none=True)
+    if "payments" in update:
+        for method in update["payments"].get("methods", []):
+            if method.get("enabled") and method.get("id") not in SUPPORTED_PAYMENT_METHODS:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"{method.get('label') or method.get('id')} is not available yet. "
+                        "Configure and test the provider before enabling it."
+                    ),
+                )
     if "store" in update and update["store"].get("country"):
         country = get_country(update["store"]["country"])
         if not country:

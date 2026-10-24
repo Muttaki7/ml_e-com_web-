@@ -2,17 +2,35 @@
 
 Production-oriented monorepo for e-commerce businesses operating in **any country** — single store, configured by admin settings (no code changes needed per deployment).
 
+> **Going live:** the repository includes a complete single-VPS production stack — Caddy with automatic HTTPS, MongoDB 7 with authentication + replica set, Redis, health checks, backups and CI. Follow [DEPLOYMENT.md](DEPLOYMENT.md). Cash on Delivery is the launch payment method; online gateways stay disabled until real merchant credentials are configured and tested.
+
+> **Setting it up:** [HowToSetup.md](HowToSetup.md) covers prerequisites, local installation, verification, production/free hosting, and troubleshooting.
+
 ## Stack
 
 | Layer | Technology |
 |-------|------------|
 | Frontend | Next.js 16, React, TypeScript, Tailwind CSS, Recharts |
 | Backend | Python 3.12, FastAPI, Pydantic v2, Motor (async MongoDB) |
-| Database | MongoDB (local or Atlas) |
+| Database | MongoDB 7 (replica set in production; local or Atlas in development) |
 | Auth | Separate Customer vs Admin JWT, TOTP 2FA (admins + customers), RBAC, audit logs |
-| Payments | COD, Stripe (card), PayPal — plus bKash / Nagad / Rocket adapters for Bangladesh deployments |
+| Payments | Cash on Delivery (launch); Stripe / PayPal / bKash / Nagad / Rocket adapters are code-ready but disabled until configured |
 | ML | Demand forecast, Product Intelligence Score, smart purchase recommendations |
-| Infra | Docker Compose, Nginx-ready |
+| Infra | Docker Compose production stack, Caddy automatic HTTPS, Redis shared rate limits, GitHub Actions CI |
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [HowToSetup.md](HowToSetup.md) | Complete setup guide: local development, hosted bootstrap, production, verification, troubleshooting |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Single-VPS production runbook with Docker, Caddy, TLS, backups, and hardening |
+| [FREE_HOSTING.md](FREE_HOSTING.md) | Vercel + Render + MongoDB Atlas free-tier deployment |
+| [AGENTS.md](AGENTS.md) | Architecture rules and conventions for contributors and coding agents |
+| [CHANGELOG.md](CHANGELOG.md) | Release history and known limitations |
+| [database/schema.sql](database/schema.sql) | SQL-readable reference of the MongoDB document model and indexes |
+| [database/seed.sql](database/seed.sql) | Demo catalog and storefront settings for the reference schema |
+
+MongoDB is the runtime database. The `database/*.sql` files are review/reporting artifacts, not migrations; runtime indexes are created in `backend/app/core/database.py`.
 
 ## Quick start
 
@@ -42,6 +60,8 @@ python ../scripts/seed.py
 - **Main Admin**: `admin@example.com` / `Admin@12345`
 - **Customers**: `customer1@example.com` … `customer10@example.com` / `Customer@123`
 
+> Local demo credentials only — rotate them before exposing the app to the internet.
+
 ### 4. Frontend
 ```bash
 cd frontend
@@ -51,10 +71,28 @@ npm run dev
 - Storefront: http://localhost:3000
 - Admin ERP: http://localhost:3000/admin/login
 
-### 5. Docker (all services)
+### 5. Docker (development)
 ```bash
 docker compose up --build
 ```
+
+### 6. Production
+Follow [DEPLOYMENT.md](DEPLOYMENT.md). In short:
+
+```bash
+python3 scripts/generate_production_env.py --host shop.example.com --email you@example.com
+./scripts/deploy.sh
+docker compose --env-file .env.production -f docker-compose.prod.yml \
+  exec backend python -m app.cli.admin create --email you@example.com --name "Store Owner" --enroll-2fa
+```
+
+Production refuses unsafe settings at boot (`DEBUG=true`, default/short `SECRET_KEY`, missing
+Redis-backed rate limits, HTTP URLs, missing allowed hosts) and serves a single `https://` origin
+for the storefront, API, and uploads.
+
+For a **free demo/staging deployment** (Vercel + Render + MongoDB Atlas M0), follow
+[FREE_HOSTING.md](FREE_HOSTING.md). It includes a Render Blueprint, an automatic hosted
+admin/demo bootstrap, split-origin media handling, and the free-tier limitations.
 
 ## Going global — one store, any country
 
@@ -64,11 +102,11 @@ Everything is driven by **Admin → Settings** (`GET/PATCH /api/v1/settings`), s
 - **Currency** — orders persist the store currency at checkout time; prices display via `Intl.NumberFormat`. Invoices use the order's currency.
 - **Phone numbers** — strict E.164 everywhere (validated server-side with libphonenumber). The frontend provides a dial-code selector per country.
 - **Addresses** — `{ country, state?, city, address_line, postal_code? }`, country validated against ISO 3166-1.
-- **Payment methods** — enable/disable COD, Card (Stripe), PayPal, bKash, Nagad, Rocket per deployment. Checkout and the payment-initiate endpoint both enforce the enabled list.
+- **Payment methods** — Cash on Delivery is available at checkout and is enforced by the API. Card (Stripe), PayPal, bKash, Nagad and Rocket adapters exist but are intentionally disabled at launch; they cannot be enabled in settings until they are in the supported set. This prevents customers from choosing a gateway that has no real merchant credentials.
 - **Branding** — store name, banner copy, company/invoice details (name, address, phone, email, tax ID) are all settings-driven.
 - **Homepage slideshows** — under **Admin → Settings**, upload up to 12 photos for the hero poster and up to 12 for each poster card. The hero auto-advances every 6 seconds and cards every 5 seconds; sections without photos keep their gradient background. Photos are validated as real JPEG/PNG/WebP/GIF files (5 MB max) and stored under `/uploads/site/`.
 
-Environment defaults live in `backend/.env` (`STORE_COUNTRY`, `CURRENCY`, `TIMEZONE`, `ORDER_NUMBER_PREFIX`, plus `STRIPE_*` / `PAYPAL_*` when card/PayPal are enabled).
+Environment defaults live in `backend/.env` (`STORE_COUNTRY`, `CURRENCY`, `TIMEZONE`, `ORDER_NUMBER_PREFIX`). Production secrets and URLs are generated into `.env.production` by `scripts/generate_production_env.py` and are never committed.
 
 `GET /api/v1/settings/meta/countries` exposes the country list (code, name, dial code, currency) to the frontend.
 
@@ -83,7 +121,7 @@ Both admins and customers support TOTP (Google Authenticator etc.) with backup c
    - it **expires** independently of the final access token,
    - **per-account attempt lockout**: 5 failures lock the account for 15 minutes (`MAX_2FA_ATTEMPTS`, `LOCKOUT_MINUTES` in settings).
 3. **Backup codes** — 8-char codes, bcrypt-hashed at rest, single-use (burned on success).
-4. **Enrollment** — `2fa/setup` → returns secret + QR (base64 PNG) + backup codes (shown once) → `2fa/confirm` with a valid TOTP code activates it. `2fa/disable` requires a TOTP or backup code. Admin enrollment is available under **Admin → Settings → Security**; customer 2FA is opt-in (managed under **My Account**). Once an account is enrolled, every login requires the second factor. The seeded demo admin is intentionally left unenrolled so the demo can be opened; enroll all real admin accounts before go-live.
+4. **Enrollment** — `2fa/setup` → returns secret + QR (base64 PNG) + backup codes (shown once) → `2fa/confirm` with a valid TOTP code activates it. `2fa/disable` requires a TOTP or backup code. Admin enrollment is available under **Admin → Settings → Two-Factor Authentication**; customer 2FA is opt-in (managed under **My Account**). Once an account is enrolled, every login requires the second factor. Production admins are created with `two_factor_required: true`; the seeded demo admin is intentionally left unenrolled for local demos only — never seed a production database.
 5. After successful verification, normal access + refresh JWTs are issued (type-claim enforced: customer tokens never work on admin routes and vice versa).
 6. **Attempt lockout is account-level** — five bad codes set `two_factor_locked_until` on the account, so restarting the password step cannot reset the attempt budget.
 
@@ -109,16 +147,22 @@ cd backend
 - Main Admin has all permissions and cannot be disabled/deleted by normal admins.
 - Lower admins cannot escalate their own role or create Main Admin.
 - Login lockout (5 attempts / 15 min) on password and 2FA steps; login timing is equalized for unknown emails.
-- Auth endpoints are rate-limited with slowapi (per process; use a shared store or edge limiter when running many instances).
-- `get_client_ip` ignores `X-Forwarded-For` unless `TRUST_PROXY_HEADERS=true`, which must only be set behind a proxy that overwrites the header.
+- Auth and write endpoints are rate-limited with slowapi. In production the counters live in Redis, so every Uvicorn worker and API node shares the same limits.
+- `get_client_ip` ignores `X-Forwarded-For` unless `TRUST_PROXY_HEADERS=true`, which must only be set behind a proxy that overwrites the header. The bundled Caddy edge overwrites it.
 - **Payment callbacks are authenticated**: `/payments/{provider}/callback` requires an `X-Payment-Signature: sha256=<HMAC-SHA256(raw body, PAYMENT_CALLBACK_SECRET)>` header (or a valid `Stripe-Signature` for card callbacks when `STRIPE_WEBHOOK_SECRET` is set). Provider, order method and amount must match; paid orders cannot be downgraded; callbacks are rejected when no secret is configured.
 - Product image uploads validate magic bytes and force the stored extension from the detected JPEG/PNG/WebP/GIF type (filename and declared MIME are not trusted).
 - Checkout reserves stock atomically; cancellations release reservations and deliveries commit them, with idempotency flags.
 - Every sensitive action is written to `audit_logs`.
 - API responses set `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`; the Next.js frontend sets the equivalent browser headers.
-- In production (`DEBUG=false`) the API refuses to start with the default or a short `SECRET_KEY`.
+- In production (`APP_ENV=production`) the API refuses to boot with unsafe defaults: `DEBUG=true`, a default/short `SECRET_KEY`, missing Redis rate-limit storage, HTTP frontend URLs, empty allowed hosts, wildcard/localhost CORS, or online gateway keys without a callback secret.
+- `/health` and `/health/live` report process liveness; `/health/ready` checks MongoDB and Redis and returns `503` when either is unavailable (used by Docker and Caddy health checks).
+- API docs and the OpenAPI schema are disabled in production.
+- Request bodies above `MAX_REQUEST_BODY_BYTES` (12 MB) are rejected at both Caddy and FastAPI.
+- The production stack publishes only Caddy (80/443); MongoDB and Redis stay on the private network, with auth and keyfile requirements.
+- Docker images run as non-root with read-only root filesystems and dropped capabilities (Caddy keeps only `NET_BIND_SERVICE`), and logs are size-capped.
+- The demo seed script refuses to run when `APP_ENV=production` or when pointed at a remote database without an explicit override.
 
-Recommended before a public launch: enroll 2FA on every admin account, terminate TLS at the proxy/CDN, restrict `/uploads` and `/docs` at the edge if they are not needed publicly, and move rate-limit counters to Redis when running more than one API instance.
+Recommended before a public launch: enroll 2FA on every admin account, keep online gateways disabled until their credentials and callbacks are verified, configure off-server backups, and keep the server patched. The full checklist is in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Performance & scaling
 
@@ -167,9 +211,9 @@ What this means for large audiences:
 - **30,000 concurrent backend users:** at one request every 30 s that is ~1,000
   req/s, close to one 4-worker node's measured read capacity. Deploy at least two
   API nodes behind a load balancer, use a MongoDB replica set, and add Redis for
-  hot reads (settings, catalog), sessions, and shared rate limiting. Add a
-  `slowapi`/gateway rate limit — the limiter is configured but not yet applied to
-  routes.
+  hot reads (settings, catalog), sessions, and shared rate limiting. Rate limits
+  are applied to auth, checkout, payment, and public write endpoints and are
+  stored in Redis in production.
 - **Login bursts:** bcrypt is CPU-bound (~26 logins/s per 6-core node). A 30,000-user
   login burst spread over an hour needs ~8 req/s (fits one node); compressed into
   five minutes it needs ~100 req/s, i.e. 4+ app nodes or a waiting-room/queue.
@@ -204,7 +248,7 @@ What this means for large audiences:
 
 ## Extending
 
-1. Add real Stripe/PayPal/bKash/Nagad credentials in `.env` and complete the provider classes in `app/api/v1/payments.py`.
+1. Implement and test the real Stripe/PayPal/bKash/Nagad provider flows, then add the provider to `SUPPORTED_PAYMENT_METHODS` in `backend/app/api/v1/settings.py`. Until then the API and admin UI keep them off.
 2. Replace the simple forecast with XGBoost/LightGBM training jobs under `ml/training/` and Celery workers.
 3. Expand the Next.js admin pages (orders table, product form, inventory transfers, invoice PDF).
 4. Wire React Query + Zustand for cart and auth state.
@@ -212,12 +256,19 @@ What this means for large audiences:
 ## Project layout
 
 ```
-pal vsai/
-  backend/          # FastAPI
-  frontend/         # Next.js
-  ml/               # datasets, training, models
-  scripts/          # seed.py, test_2fa_flows.py
-  infrastructure/   # docker, nginx
-  docs/
-  docker-compose.yml
+ml_e-com_web-/
+  backend/                    # FastAPI, admin CLI, Dockerfile
+  frontend/                   # Next.js, standalone Docker image
+  ml/                         # datasets, training, models
+  scripts/                    # seed, load/security tests, production env/deploy/backup
+  infrastructure/             # Caddyfile, MongoDB replica-set bootstrap
+  database/                   # SQL-readable reference schema and demo seed
+  docker-compose.yml          # local development
+  docker-compose.prod.yml     # production stack
+  HowToSetup.md               # complete setup and verification guide
+  DEPLOYMENT.md               # VPS runbook
+  FREE_HOSTING.md             # Vercel + Render + Atlas free-tier runbook
+  AGENTS.md                   # contributor and coding-agent conventions
+  CHANGELOG.md                # release history
+  render.yaml                 # Render Blueprint (free backend + Key Value)
 ```

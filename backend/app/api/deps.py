@@ -4,8 +4,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from bson import ObjectId
 
 from app.core.security import decode_token
+from app.core.client_ip import client_ip
 from app.core.database import get_db
-from app.core.config import settings
 from app.core.constants import resolve_admin_permissions
 
 security = HTTPBearer(auto_error=False)
@@ -77,9 +77,4 @@ def require_permission(*required: str):
 
 
 def get_client_ip(request: Request) -> str:
-    # X-Forwarded-For is client-controlled unless a trusted proxy rewrites it.
-    if settings.TRUST_PROXY_HEADERS:
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    return client_ip(request)

@@ -18,6 +18,7 @@ from bson import ObjectId
 from app.core.database import get_db
 from app.core.config import settings
 from app.core.constants import PaymentMethod, PaymentStatus
+from app.core.limiter import limiter
 from app.api.deps import get_current_customer, require_permission
 from app.services.audit_service import log_action
 from app.services.invoice_service import regenerate_order_invoice
@@ -228,8 +229,10 @@ PROVIDERS = {
 
 
 @router.post("/initiate")
+@limiter.limit("20/minute")
 async def initiate_payment(
     body: PaymentInit,
+    request: Request,
     customer: dict = Depends(get_current_customer),
 ):
     db = get_db()
@@ -263,6 +266,7 @@ async def initiate_payment(
 
 
 @router.post("/{provider}/callback")
+@limiter.limit("120/minute")
 async def payment_callback(provider: str, body: PaymentCallback, request: Request):
     """Called by a payment gateway after it processes a payment.
 

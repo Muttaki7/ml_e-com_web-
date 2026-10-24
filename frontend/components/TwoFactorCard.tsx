@@ -30,7 +30,12 @@ export default function TwoFactorCard({ scope = "customer" }: { scope?: Scope })
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY[scope]);
-      if (raw) setEnabled(!!JSON.parse(raw).two_factor_enabled);
+      if (raw) {
+        // Sync UI with external storage after mount; a lazy initializer would
+        // risk a server/client hydration mismatch.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setEnabled(!!JSON.parse(raw).two_factor_enabled);
+      }
     } catch {}
   }, [scope]);
 
@@ -120,7 +125,6 @@ export default function TwoFactorCard({ scope = "customer" }: { scope?: Scope })
         <form onSubmit={confirmSetup} className="mt-4 space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="shrink-0 p-2 bg-white rounded-xl border dark:border-slate-700 self-start">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`data:image/png;base64,${setup.qr_code_base64}`}
                 alt="2FA QR code"

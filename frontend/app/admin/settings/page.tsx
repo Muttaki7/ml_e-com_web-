@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { adminApi, formatMoney, getApiError, getStoreSettings } from "@/lib/api";
+import { adminApi, formatMoney, getApiError, getStoreSettings, mediaUrl } from "@/lib/api";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { AdminShell } from "@/components/AdminShell";
 import { loadCountries, type Country } from "@/components/IntlPhoneInput";
@@ -101,7 +101,7 @@ function ImageSlideshowEditor({
             key={url}
             className="relative w-28 h-20 rounded-lg overflow-hidden border dark:border-slate-700 bg-slate-100 dark:bg-slate-800 group"
           >
-            <img src={url} alt={`Slideshow photo ${i + 1}`} className="w-full h-full object-cover" />
+            <img src={mediaUrl(url)} alt={`Slideshow photo ${i + 1}`} className="w-full h-full object-cover" />
             <span className="absolute left-1 top-1 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white">
               {i === 0 ? "Cover" : i + 1}
             </span>
@@ -247,10 +247,6 @@ export default function AdminSettingsPage() {
 
   function removeBannerImage(url: string) {
     setBanner((b) => ({ ...b, images: b.images.filter((u) => u !== url) }));
-  }
-
-  function updatePaymentMethod(id: string, enabled: boolean) {
-    setPaymentMethods((ms) => ms.map((m) => (m.id === id ? { ...m, enabled } : m)));
   }
 
   function handleCountryChange(code: string) {
@@ -560,7 +556,7 @@ export default function AdminSettingsPage() {
                   {p.images?.[0] && (
                     <>
                       <img
-                        src={p.images[0]}
+                        src={mediaUrl(p.images[0])}
                         alt=""
                         className="absolute inset-0 w-full h-full object-cover"
                       />
@@ -652,23 +648,31 @@ export default function AdminSettingsPage() {
             <CreditCard size={18} className="text-sky-600" /> Payment Methods
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Enabled methods appear at checkout. Configure provider credentials (Stripe, PayPal,
-            bKash…) in the backend environment.
+            Cash on Delivery is live. Online gateways stay disabled until provider credentials
+            and webhook signing are configured and tested in the backend environment.
           </p>
           <div className="grid md:grid-cols-2 gap-2">
-            {paymentMethods.map((m) => (
-              <label
-                key={m.id}
-                className="flex items-center justify-between gap-3 border dark:border-slate-700 rounded-xl px-4 py-3 cursor-pointer"
-              >
-                <span className="text-sm text-slate-700 dark:text-slate-300">{m.label || m.id}</span>
-                <input
-                  type="checkbox"
-                  checked={!!m.enabled}
-                  onChange={(e) => updatePaymentMethod(m.id, e.target.checked)}
-                />
-              </label>
-            ))}
+            {paymentMethods.map((m) => {
+              const isCod = m.id === "cod";
+              return (
+                <label
+                  key={m.id}
+                  className={`flex items-center justify-between gap-3 border dark:border-slate-700 rounded-xl px-4 py-3 ${
+                    isCod ? "cursor-default" : "opacity-60 cursor-not-allowed"
+                  }`}
+                >
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                    {m.label || m.id}
+                    {!isCod && (
+                      <span className="ml-2 text-[10px] uppercase tracking-wide text-slate-400">
+                        Not available yet
+                      </span>
+                    )}
+                  </span>
+                  <input type="checkbox" checked={isCod ? true : !!m.enabled} disabled readOnly />
+                </label>
+              );
+            })}
           </div>
         </section>
 

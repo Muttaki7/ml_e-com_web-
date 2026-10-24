@@ -1,0 +1,67 @@
+# Free-tier backend blueprint: Render Web Service (FastAPI/Docker) + Key Value.
+# The Next.js storefront is deployed separately on Vercel — see FREE_HOSTING.md.
+#
+# Render prompts for every `sync: false` value when the Blueprint is created.
+# FRONTEND_URL and CORS_ORIGINS must be the final https://<project>.vercel.app
+# origin; you can update them in the dashboard after Vercel assigns the domain.
+services:
+  - type: web
+    name: globalshop-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health/ready
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PAYMENT_CALLBACK_SECRET
+        generateValue: true
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        value: globalshop
+      - key: MONGODB_MAX_POOL_SIZE
+        value: "10"
+      - key: RATE_LIMIT_STORAGE_URI
+        fromService:
+          type: keyvalue
+          name: globalshop-rate-limit
+          property: connectionString
+      - key: ALLOWED_HOSTS
+        value: globalshop-api.onrender.com
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: UPLOAD_ROOT
+        value: /tmp/uploads
+      - key: CURRENCY
+        value: USD
+      - key: CURRENCY_SYMBOL
+        value: "$"
+      - key: STORE_COUNTRY
+        value: US
+      - key: BOOTSTRAP_ADMIN_NAME
+        value: Store Owner
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: BOOTSTRAP_DEMO_DATA
+        value: "true"
+
+  - type: keyvalue
+    name: globalshop-rate-limit
+    plan: free
+    region: oregon

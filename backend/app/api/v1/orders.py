@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import datetime, timezone
 import secrets
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, HTTPException, Request
 from fastapi.responses import FileResponse
 from bson import ObjectId
 from pymongo import ReturnDocument
@@ -10,9 +10,11 @@ from pydantic import BaseModel, Field
 from app.core.database import get_db
 from app.core.config import settings
 from app.core.constants import OrderStatus, PaymentStatus, PaymentMethod
+from app.core.limiter import limiter
 from app.api.deps import get_current_customer, get_current_admin, require_permission
 from app.services.audit_service import log_action
 from app.services.invoice_service import generate_order_invoice, ensure_order_invoice
+from app.services import email_service
 from app.api.v1.settings import (
     get_delivery_charge, get_store_meta, get_settings_doc, enabled_payment_methods,
 )
@@ -58,8 +60,11 @@ def _order_number() -> str:
 
 
 @router.post("/orders/checkout")
+@limiter.limit("20/minute")
 async def checkout(
     body: CheckoutIn,
+    request: Request,
+    background_tasks: BackgroundTasks,
     customer: dict = Depends(get_current_customer),
 ):
     db = get_db()
@@ -149,6 +154,7 @@ async def checkout(
         raise
 
     await log_action(customer["id"], "customer", "order.created", "order", str(result.inserted_id))
+    background_tasks.add_task(email_service.send_order_confirmation, customer, order)
 
     # Generate and store the .pdf invoice on device (uploads/invoices/)
     try:

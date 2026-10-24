@@ -65,6 +65,9 @@ export default function IntlPhoneInput({
       .filter((c) => value.startsWith(c.dial_code.replace(/[^\d+]/g, "")))
       .sort((a, b) => b.dial_code.length - a.dial_code.length)[0];
     if (match) {
+      // Parent-supplied value is an external source; mirror it into local state
+      // used by the dial-code select and national input.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDial(match.dial_code);
       setNational(value.slice(match.dial_code.replace(/[^\d]/g, "").length + 1));
     }

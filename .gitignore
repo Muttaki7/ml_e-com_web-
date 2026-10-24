@@ -3,8 +3,14 @@ node_modules/
 __pycache__/
 *.pyc
 .env
+.env.*
+!.env.example
+!.env.development
+.env.production
 .next/
 uploads/
+secrets/
+backups/
 
 
 frontend/next.log
