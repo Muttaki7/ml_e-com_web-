@@ -2,6 +2,12 @@
 
 All notable changes to GlobalShop are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses semantic versioning.
 
+## [Unreleased]
+
+### Changed
+
+- The production env generator now configures apex and `www` together for domain hosts (`SITE_ADDRESS`, `ALLOWED_HOSTS`, `CORS_ORIGINS`), so one Caddy instance serves both names with a single certificate flow. IP hosts using `sslip.io` stay single-host.
+
 ## [1.0.0] - 2026-10-25
 
 First production-oriented release of the global commerce, ERP, and machine-learning platform.

@@ -105,6 +105,13 @@ def main() -> int:
         raise SystemExit("ERROR: --mongo-cache-gb must be at least 0.25.")
 
     host, note = normalise_host(args.host)
+    if note is None and not host.startswith("www."):
+        site_hosts = [host, f"www.{host}"]
+    else:
+        site_hosts = [host]
+    site_address = ",".join(site_hosts)
+    allowed_hosts = ",".join(site_hosts)
+    cors_origins = ",".join(f"https://{h}" for h in site_hosts)
     email = args.email.strip() or DEFAULT_EMAIL
     if "@" not in email or email.endswith("@"):
         raise SystemExit("ERROR: --email does not look like a valid email address.")
@@ -145,14 +152,14 @@ SECRET_KEY={secret_key}
 WEB_CONCURRENCY={args.workers}
 MAX_REQUEST_BODY_BYTES=12582912
 FRONTEND_URL={public_url}
-CORS_ORIGINS={public_url}
-ALLOWED_HOSTS={host}
+CORS_ORIGINS={cors_origins}
+ALLOWED_HOSTS={allowed_hosts}
 TRUST_PROXY_HEADERS=true
 STORE_COUNTRY={country}
 TZ=UTC
 
 # --- Edge / TLS ------------------------------------------------------------
-SITE_ADDRESS={host}
+SITE_ADDRESS={site_address}
 ACME_EMAIL={email}
 NEXT_PUBLIC_API_URL=/api/v1
 
@@ -207,7 +214,10 @@ PAYMENT_CALLBACK_SECRET={callback_secret}
     print(f"Public URL: {public_url}")
     print()
     print("Next steps:")
-    print(f"  1. DNS: point an A record for {host} at this server (sslip.io needs no setup).")
+    if note:
+        print("  1. DNS: no setup needed for the sslip.io hostname.")
+    else:
+        print(f"  1. DNS: point A records for {', '.join(site_hosts)} at this server's public IPv4.")
     print("  2. Firewall: allow TCP 22, 80, 443 and UDP 443; never expose 27017 or 6379.")
     print("  3. Start the stack: ./scripts/deploy.sh")
     print("  4. Create the owner account and enroll 2FA:")

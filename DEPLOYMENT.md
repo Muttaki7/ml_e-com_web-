@@ -51,9 +51,10 @@ sudo apt-get install -y git curl python3
 
 Pick one:
 
-- **Custom domain (recommended later):** create an `A` record pointing the host
-  (e.g. `shop.example.com`) at the server's public IPv4. Add `AAAA` only if the
-  server has a working IPv6 address. Wait for DNS to resolve.
+- **Custom domain (recommended):** create `A` records for the apex host
+  (e.g. `shop.example.com`) and `www` (`www.shop.example.com`) pointing at the
+  server's public IPv4, or a `CNAME` for `www` pointing at the apex. Add `AAAA`
+  only if the server has a working IPv6 address. Wait for DNS to resolve.
 - **No domain yet:** use the server's public IP. The env generator turns
   `203.0.113.10` into `203.0.113.10.sslip.io`, a public hostname that resolves to
   that IP and can receive a Let's Encrypt certificate.
@@ -101,6 +102,8 @@ Notes:
 - Re-running with `--force` rotates every secret; existing database credentials
   remain until MongoDB is reconfigured, so do not rotate casually.
 - Custom store country, currency, and branding are configured later in Admin → Settings.
+- For domain hosts, the generator also includes `www.<host>` in `SITE_ADDRESS`,
+  `ALLOWED_HOSTS`, and `CORS_ORIGINS` so Caddy can issue a certificate for both names.
 
 ---
 
