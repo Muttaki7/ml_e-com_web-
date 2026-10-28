@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from app.schemas.auth import (
     CustomerRegister, CustomerLogin, AdminLogin, TwoFAVerify,
     TwoFASetupConfirm, TwoFADisable, TokenResponse,
@@ -8,9 +8,34 @@ from app.schemas.auth import (
 from app.services import auth_service
 from app.services.admin_service import get_admin
 from app.api.deps import get_current_admin, get_current_customer, get_client_ip
+from app.core.config import settings
 from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+# ---------- Public demo ----------
+@router.get("/demo")
+@limiter.limit("20/minute")
+async def demo_accounts(request: Request):
+    """Credentials for the one-click demo buttons.
+
+    Returns 404 unless DEMO_MODE is explicitly enabled. The accounts are
+    created by `python -m app.cli.bootstrap` on the same demo deployment.
+    """
+    if not settings.DEMO_MODE:
+        raise HTTPException(status_code=404, detail="Not found")
+    return {
+        "enabled": True,
+        "admin": {
+            "email": settings.DEMO_ADMIN_EMAIL,
+            "password": settings.DEMO_ADMIN_PASSWORD,
+        },
+        "customer": {
+            "email": settings.DEMO_CUSTOMER_EMAIL,
+            "password": settings.DEMO_CUSTOMER_PASSWORD,
+        },
+    }
 
 
 # ---------- Admin profile ----------

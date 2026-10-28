@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authApi, getApiError } from "@/lib/api";
+import { DemoLoginPanel } from "@/components/DemoLoginPanel";
 import toast from "react-hot-toast";
 import { ShieldCheck, Mail, Lock, KeyRound, LogIn, ArrowLeft } from "lucide-react";
 
@@ -68,6 +69,8 @@ export default function AdminLoginPage() {
         <p className="text-center text-slate-500 dark:text-slate-400 text-sm mt-1">
           Separate authentication · TOTP 2FA available for administrators
         </p>
+
+        <DemoLoginPanel />
 
         {step === "password" ? (
           <form onSubmit={handlePassword} className="mt-8 space-y-4">

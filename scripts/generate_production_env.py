@@ -85,6 +85,11 @@ def main() -> int:
         help="MongoDB WiredTiger cache size in GB (default: 0.5)",
     )
     parser.add_argument("--force", action="store_true", help="Overwrite an existing .env.production")
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="Enable public demo logins and seeded demo accounts (review/demo hosts only)",
+    )
     args = parser.parse_args()
 
     if ENV_FILE.exists() and not args.force:
@@ -118,6 +123,12 @@ def main() -> int:
     if email == DEFAULT_EMAIL:
         print(
             f"WARNING: using {DEFAULT_EMAIL} for TLS notices; pass --email to receive expiry alerts.",
+            file=sys.stderr,
+        )
+    if args.demo:
+        print(
+            "WARNING: DEMO_MODE is enabled — the demo admin/user credentials are public. "
+            "Use a disposable demo database, never a real store.",
             file=sys.stderr,
         )
 
@@ -157,6 +168,10 @@ ALLOWED_HOSTS={allowed_hosts}
 TRUST_PROXY_HEADERS=true
 STORE_COUNTRY={country}
 TZ=UTC
+# Public demo: one-click demo logins + seeded demo accounts. Keep false for a real store.
+DEMO_MODE={'true' if args.demo else 'false'}
+# Public demo: seed the sample catalog into an empty database.
+BOOTSTRAP_DEMO_DATA={'true' if args.demo else 'false'}
 
 # --- Edge / TLS ------------------------------------------------------------
 SITE_ADDRESS={site_address}

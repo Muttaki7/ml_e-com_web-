@@ -68,8 +68,13 @@ cd frontend
 npm install
 npm run dev
 ```
-- Storefront: http://localhost:3000
+- Landing page: http://localhost:3000
+- Storefront: http://localhost:3000/shop
 - Admin ERP: http://localhost:3000/admin/login
+
+Set `DEMO_MODE=true` on the backend to seed demo accounts and show **Login as
+Admin** / **Login as User** on the login screens. It is off by default; see
+[DEPLOYMENT.md](DEPLOYMENT.md#public-demo-hosts).
 
 ### 5. Docker (development)
 ```bash

@@ -80,6 +80,11 @@ Do not change the allowlist or credentials of an existing production cluster.
 
    Everything else (secrets, Mongo database name, allowed host, pool size,
    `/tmp/uploads`, demo catalog) is already set in the blueprint.
+
+   For a public demo, also set `DEMO_MODE=true` in the Render dashboard. That
+   seeds a demo admin and demo shopper and shows **Login as Admin** / **Login as
+   User** on the login pages. Leave it `false` for anything with real data.
+   `scripts/generate_production_env.py --demo` does the same for the Docker stack.
 4. **Apply**. The first Docker build downloads the Python/ML wheels and can take
    10–20 minutes. The service only becomes live once `/health/ready` returns
    200 — that endpoint checks both MongoDB and Key Value.

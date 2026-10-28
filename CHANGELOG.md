@@ -4,8 +4,15 @@ All notable changes to GlobalShop are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- Public demo mode (`DEMO_MODE`, off by default): seeds a non-privileged demo admin and a demo shopper, serves their credentials only from `/api/v1/auth/demo`, and adds "Login as Admin" / "Login as User" buttons to both login screens. A real store keeps it disabled and never shows demo access.
+- Marketing landing page at `/` with a Live Demo CTA into the storefront, real product screenshots, and a 1280×720 cover (`frontend/public/vibe96-cover.webp`) wired into Open Graph and Twitter metadata.
+- `scripts/generate_production_env.py --demo` turns demo mode on for disposable review/demo hosts and prints a warning.
+
 ### Changed
 
+- The storefront now lives at `/shop`; the header logo and Home link, registration redirect, and "Back to shop" links follow it.
 - The production env generator now configures apex and `www` together for domain hosts (`SITE_ADDRESS`, `ALLOWED_HOSTS`, `CORS_ORIGINS`), so one Caddy instance serves both names with a single certificate flow. IP hosts using `sslip.io` stay single-host.
 
 ## [1.0.0] - 2026-10-25

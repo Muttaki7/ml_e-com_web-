@@ -105,6 +105,22 @@ Notes:
 - For domain hosts, the generator also includes `www.<host>` in `SITE_ADDRESS`,
   `ALLOWED_HOSTS`, and `CORS_ORIGINS` so Caddy can issue a certificate for both names.
 
+### Public demo hosts
+
+To publish a review or demo instance with one-click logins, add `--demo`:
+
+```bash
+python3 scripts/generate_production_env.py --host demo.example.com --email you@example.com --demo
+```
+
+This sets `DEMO_MODE=true` and `BOOTSTRAP_DEMO_DATA=true`, which seed
+`demo.admin@…` / `demo.customer@…` plus the sample catalog into an empty
+database, and expose the demo credentials from `/api/v1/auth/demo` so both login
+screens can offer **Login as Admin** and **Login as User**. Treat such a host as
+disposable: the demo admin can edit catalog and settings, and the credentials are
+public. Never enable demo mode on a store with real customers or orders, and make
+sure the database has nothing sensitive before the first boot.
+
 ---
 
 ## 4. Deploy
@@ -289,7 +305,7 @@ never fail an order.
 - [ ] MongoDB and Redis not published to the host.
 - [ ] `.env.production` mode 600, backed up offline, never committed.
 - [ ] Admin 2FA enrolled; backup codes stored offline.
-- [ ] Demo seed not run; test accounts removed.
+- [ ] Demo seed not run; test accounts removed; `DEMO_MODE=false`.
 - [ ] COD verified end to end; online gateways left off until credentials and
       callbacks are tested.
 - [ ] Automatic backups plus off-server copies.

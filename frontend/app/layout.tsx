@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://gcart.com"),
   title: "GlobalShop — Commerce & ERP",
   description: "Global E-Commerce & ERP with Machine Learning for every country",
 };

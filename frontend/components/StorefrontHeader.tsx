@@ -24,7 +24,7 @@ export function StorefrontHeader() {
   return (
     <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur border-b border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2 text-xl font-extrabold tracking-tight">
+        <Link href="/shop" className="flex items-center gap-2 text-xl font-extrabold tracking-tight">
           <span className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center">
             <Store size={17} />
           </span>
@@ -34,7 +34,7 @@ export function StorefrontHeader() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-5">
-          <Link href="/" className={linkCls("/")}>
+          <Link href="/shop" className={linkCls("/shop")}>
             <Home size={16} /> Home
           </Link>
           <Link href="/products" className={linkCls("/products")}>

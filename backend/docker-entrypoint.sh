@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-if [ -n "${BOOTSTRAP_ADMIN_EMAIL:-}" ] || [ "${BOOTSTRAP_DEMO_DATA:-0}" = "true" ] || [ "${BOOTSTRAP_DEMO_DATA:-0}" = "1" ]; then
+if [ -n "${BOOTSTRAP_ADMIN_EMAIL:-}" ] || [ "${BOOTSTRAP_DEMO_DATA:-0}" = "true" ] \
+  || [ "${BOOTSTRAP_DEMO_DATA:-0}" = "1" ] || [ "${DEMO_MODE:-0}" = "true" ]; then
   python -m app.cli.bootstrap
 fi
 

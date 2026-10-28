@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authApi, getApiError } from "@/lib/api";
+import { DemoLoginPanel } from "@/components/DemoLoginPanel";
 import toast from "react-hot-toast";
 import { Mail, Lock, LogIn, Store, KeyRound, ArrowLeft } from "lucide-react";
 
@@ -69,6 +70,8 @@ export default function CustomerLoginPage() {
         <p className="text-center text-slate-500 dark:text-slate-400 text-sm mt-1">
           Sign in to place orders &amp; track deliveries
         </p>
+
+        <DemoLoginPanel />
 
         {step === "password" ? (
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -149,7 +152,7 @@ export default function CustomerLoginPage() {
             New customer? Create an account
           </Link>
         </div>
-        <Link href="/" className="block mt-4 text-center text-xs text-slate-400 hover:underline">
+        <Link href="/shop" className="block mt-4 text-center text-xs text-slate-400 hover:underline">
           Back to shop
         </Link>
       </div>

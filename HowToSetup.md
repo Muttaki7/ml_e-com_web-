@@ -124,8 +124,13 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 
 Open:
 
-- Storefront: http://localhost:3000
+- Landing page: http://localhost:3000
+- Storefront: http://localhost:3000/shop
 - Admin ERP: http://localhost:3000/admin/login
+
+For a public demo, set `DEMO_MODE=true` before starting the backend; the login
+pages then show **Login as Admin** / **Login as User** and the bootstrap creates
+the demo accounts. Leave it unset for a real store.
 
 ## 6. First admin login and branding
 

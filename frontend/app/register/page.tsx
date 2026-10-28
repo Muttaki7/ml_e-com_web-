@@ -27,7 +27,7 @@ export default function CustomerRegisterPage() {
       localStorage.setItem("token_type", "customer");
       localStorage.setItem("customer_user", JSON.stringify(data.user));
       toast.success("Account created. Welcome!");
-      router.push("/");
+      router.push("/shop");
     } catch (err: any) {
       toast.error(getApiError(err, "Registration failed"));
     } finally {
@@ -109,7 +109,7 @@ export default function CustomerRegisterPage() {
             Already have an account? Sign in
           </Link>
         </div>
-        <Link href="/" className="block mt-4 text-center text-xs text-slate-400 hover:underline">
+        <Link href="/shop" className="block mt-4 text-center text-xs text-slate-400 hover:underline">
           Back to shop
         </Link>
       </div>

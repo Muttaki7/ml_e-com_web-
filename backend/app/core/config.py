@@ -101,6 +101,14 @@ class Settings(BaseSettings):
     BOOTSTRAP_ADMIN_NAME: str = "Store Owner"
     BOOTSTRAP_DEMO_DATA: bool = False
 
+    # Public demo deployment: bootstrap fixed demo accounts and expose their
+    # credentials to the login screen. Never enable on a store with real data.
+    DEMO_MODE: bool = False
+    DEMO_ADMIN_EMAIL: str = "demo.admin@gcart.com"
+    DEMO_ADMIN_PASSWORD: str = "DemoAdmin@2026"
+    DEMO_CUSTOMER_EMAIL: str = "demo.customer@gcart.com"
+    DEMO_CUSTOMER_PASSWORD: str = "DemoCustomer@2026"
+
     @property
     def is_production(self) -> bool:
         return self.APP_ENV.strip().lower() in PRODUCTION_ENVS

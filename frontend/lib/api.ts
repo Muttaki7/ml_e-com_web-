@@ -183,6 +183,11 @@ export const authApi = {
   adminMe: () => api.get("/auth/admin/me"),
 };
 
+/** Demo accounts, only available when the backend has DEMO_MODE=true. */
+export const demoApi = {
+  accounts: () => api.get("/auth/demo"),
+};
+
 export const productApi = {
   list: (params?: any) => api.get("/products", { params }),
   get: (id: string) => api.get(`/products/${id}`),

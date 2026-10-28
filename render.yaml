@@ -60,6 +60,10 @@ services:
         sync: false
       - key: BOOTSTRAP_DEMO_DATA
         value: "true"
+      # Set true only for a throwaway public demo: it seeds demo accounts and
+      # publishes them on the login screens. Never for a real store.
+      - key: DEMO_MODE
+        value: "false"
 
   - type: keyvalue
     name: globalshop-rate-limit
